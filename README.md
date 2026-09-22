@@ -184,12 +184,13 @@ Supabase SQL editor — no automated runner, same as `nfl-over-unders`.
   background when `last_synced_at` is more than 10 minutes old and someone loads
   a page.
 
-That third path exists because Vercel's Hobby plan caps cron jobs at one run per
-day each, which is useless for a postseason where games finish at 11pm and
-people check the leaderboard at 11:05. The stale-read trigger keeps the site
-fresh whenever anyone is actually looking at it; the crons are just a floor so
-the data is current even if nobody visits. On a Pro plan this collapses to a
-single every-15-minutes cron and `syncIfStale()` can go.
+That third path is load-bearing, because this deploys to Vercel's Hobby plan,
+which caps cron jobs at one run per day each — useless for a postseason where
+games finish at 11pm and people check the leaderboard at 11:05. The stale-read
+trigger is what actually keeps the site fresh, since it fires whenever anyone is
+looking at it; the two daily crons are only a floor, so the data is still
+current if nobody visits all day. (On a Pro plan this would collapse to one
+every-15-minutes cron and `syncIfStale()` could go.)
 
 Each run:
 
