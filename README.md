@@ -5,8 +5,8 @@ Wild Card round, everyone fills out the entire playoff bracket — who wins each
 of the 11 series, and how many games each one takes — plus a World Series MVP
 and a tiebreaker. Then the app watches the games and keeps score.
 
-This README is the full spec. Nothing is built yet; see **Build order** at the
-bottom.
+This README is the full spec, and **Build order** at the bottom tracks what is
+done.
 
 ---
 
@@ -312,8 +312,8 @@ Monospace for numbers and scores, a condensed display face for headings.
 
 ## Build order
 
-1. Supabase project, schema migration, seed the 30 teams and the 11 series slots.
-2. Auth — sign up, sign in, profile trigger, middleware.
+1. ~~Supabase project, schema migration, seed the 30 teams and the 11 series slots.~~ Done.
+2. ~~Auth — sign up, sign in, profile trigger, middleware.~~ Done.
 3. Admin — playoff field (pull + manual), scoring config, lock time.
 4. Bracket entry — the tree form, game counts, MVP, tiebreaker, and the lock.
 5. Sync — ESPN fetch, bracket advancement, game attachment.

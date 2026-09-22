@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/*
+ * Night-game palette: navy-black sky, slate surfaces, chalk-white text,
+ * stitch red as the single accent. Committed dark theme — no light
+ * variant, since the look is the point.
+ *
+ * Red is reserved for "look here", so a wrong or eliminated pick greys out
+ * with --color-dead rather than turning red.
+ */
+@theme {
+  --color-bg: #0a0f16;
+  --color-surface: #141b24;
+  --color-surface-2: #1d2630;
+  --color-border: #34404d;
+  --color-ink: #f2efe8;
+  --color-ink-muted: #93a1b0;
+  --color-accent: #c8322f;
+  --color-accent-hover: #e04340;
+  --color-accent-ink: #f2efe8;
+  --color-good: #3f9e5a;
+  --color-dead: #6b7785;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-oswald);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
