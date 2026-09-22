@@ -325,3 +325,19 @@ Monospace for numbers and scores, a condensed display face for headings.
 Steps 1–4 have to be done before Tuesday, September 29. Steps 5–7 only need to
 be working before the first Wild Card game finishes, and can land after entries
 lock.
+
+## Running the schema tests
+
+The scoring rules and the pre-lock privacy rules live in SQL — views and RLS
+policies — where they are easy to get subtly wrong and impossible to verify by
+reading. `supabase/tests/` applies the migrations and seed to a throwaway local
+Postgres, plays a wild card and a division series through it, and asserts on the
+results:
+
+```bash
+./supabase/tests/run.sh
+```
+
+It needs a local Postgres 15+ on `PATH` and never touches the real Supabase
+project. Add a case to `supabase/tests/checks.sql` whenever a scoring rule or a
+policy changes.
