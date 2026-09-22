@@ -252,10 +252,12 @@ scores, who's ahead, and how each player's pick is doing.
 `nfl-over-unders`:
 
 - **Participants** — who's signed up, who's entered a bracket.
-- **Playoff field** — set the twelve seeds. A "Pull from ESPN" button fills them
-  in from ESPN's standings once the regular season ends; every row stays
-  editable by hand, so a failed or wrong pull is never a blocker. Filling the
-  field also syncs the twelve teams' rosters into `players`.
+- **Playoff field** — set the twelve seeds by hand once the regular season
+  ends. Seeding is not something the scoreboard feed reports (it follows from
+  the standings and MLB's tiebreakers), so this is entered rather than pulled;
+  it is twelve dropdowns once a year. Saving the field also fills in the four
+  Wild Card matchups, which is what makes brackets fillable, and syncs the
+  twelve teams' rosters into `players`.
 - **Scoring** — the four round values, the length bonus, the MVP bonus.
 - **Lock time** — the entry deadline.
 - **Scores** — last sync time and a manual sync button.
@@ -314,8 +316,8 @@ Monospace for numbers and scores, a condensed display face for headings.
 
 1. ~~Supabase project, schema migration, seed the 30 teams and the 11 series slots.~~ Done.
 2. ~~Auth — sign up, sign in, profile trigger, middleware.~~ Done.
-3. Admin — playoff field (pull + manual), scoring config, lock time.
-4. Bracket entry — the tree form, game counts, MVP, tiebreaker, and the lock.
+3. ~~Admin — playoff field, scoring config, lock time, MVP.~~ Done.
+4. ~~Bracket entry — the tree form, game counts, MVP, tiebreaker, and the lock.~~ Done.
 5. Sync — ESPN fetch, bracket advancement, game attachment.
 6. Scoring — `series_results`, `bracket_pick_scores`, `overall_leaderboard`, and
    the leaderboard page.
