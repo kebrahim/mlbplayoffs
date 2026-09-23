@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Baseball">
+  <circle cx="16" cy="16" r="15" fill="#f2efe8" stroke="#1d2630" stroke-width="1.5" />
+  <g fill="none" stroke="#c8322f" stroke-linecap="round">
+    <path d="M7 4.2Q12.6 16 7 27.8" stroke-width="2" />
+    <path d="M25 4.2Q19.4 16 25 27.8" stroke-width="2" />
+    <g stroke-width="1.4">
+      <path d="M8.8 9.6l2.6-1.1M10.2 14.4l2.8-.5M10.2 17.6l2.8.5M8.8 22.4l2.6 1.1" />
+      <path d="M23.2 9.6l-2.6-1.1M21.8 14.4l-2.8-.5M21.8 17.6l-2.8.5M23.2 22.4l-2.6 1.1" />
+    </g>
+  </g>
+</svg>
