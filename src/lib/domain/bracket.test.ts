@@ -134,3 +134,34 @@ test("a bracket is complete only when every slot has a pick", () => {
   const full = AL_BRACKET.map((s) => ({ series_key: s.key, predicted_team_id: 101 }));
   assert.equal(isBracketComplete(full, AL_BRACKET), true);
 });
+
+test("correcting the playoff field invalidates picks the new field can't reach", () => {
+  // Sunday night: the seeds go in with 3 and 4 the wrong way round, and
+  // someone fills in a bracket before the commissioner notices.
+  const picks = [
+    { series_key: "AL_WC_36", predicted_team_id: 103 },
+    { series_key: "AL_WC_45", predicted_team_id: 104 },
+    { series_key: "AL_DS_1", predicted_team_id: 104 },
+  ];
+  assert.deepEqual(prunePicks(picks, AL_BRACKET, seedTeam), picks);
+
+  // The fix swaps them, so team 103 is now the 4 seed and 104 the 3 seed.
+  const corrected = (_league: League, seed: number) =>
+    seed === 3 ? 104 : seed === 4 ? 103 : 100 + seed;
+
+  // Both wild card picks named teams that have moved to the other series,
+  // and the division series pick went with them.
+  assert.deepEqual(prunePicks(picks, AL_BRACKET, corrected), []);
+});
+
+test("a field correction that doesn't move a team leaves its picks alone", () => {
+  const picks = [
+    { series_key: "AL_WC_36", predicted_team_id: 103 },
+    { series_key: "AL_DS_2", predicted_team_id: 103 },
+  ];
+  // Seeds 5 and 6 swap; nothing the player picked is affected.
+  const corrected = (_league: League, seed: number) =>
+    seed === 5 ? 106 : seed === 6 ? 105 : 100 + seed;
+
+  assert.deepEqual(prunePicks(picks, AL_BRACKET, corrected), picks);
+});

@@ -28,7 +28,7 @@ export function PlayoffFieldForm({
   teams: Team[];
   seeds: PlayoffSeed[];
 }) {
-  const [error, formAction, pending] = useActionState(setPlayoffField, null);
+  const [result, formAction, pending] = useActionState(setPlayoffField, null);
   const current = (league: string, seed: number) =>
     seeds.find((s) => s.league === league && s.seed === seed)?.team_id ?? "";
 
@@ -66,9 +66,17 @@ export function PlayoffFieldForm({
       </div>
       <p className="mt-4 text-sm text-ink-muted">
         Saving the field also sets the four Wild Card matchups, which is what makes brackets
-        fillable. Seeds 1 and 2 have byes.
+        fillable. Seeds 1 and 2 have byes. Correcting it later re-checks every bracket already
+        entered and clears any pick the new field no longer allows.
       </p>
-      <SaveRow error={error} pending={pending} label="Save the field" />
+      <SaveRow error={result?.error ?? null} pending={pending} label="Save the field" />
+      {result && !result.error && (
+        <p className="mt-2 text-sm text-ink-muted">
+          {result.clearedPicks
+            ? `Saved. ${result.clearedPicks} pick${result.clearedPicks === 1 ? "" : "s"} no longer reachable were cleared — tell whoever entered them.`
+            : "Saved."}
+        </p>
+      )}
     </form>
   );
 }

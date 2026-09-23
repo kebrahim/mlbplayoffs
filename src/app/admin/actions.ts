@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
-import type { League } from "@/lib/supabase/types";
+import { prunePicks } from "@/lib/domain/bracket";
+import { picksLocked } from "@/lib/domain/settings";
+import type { League, Series } from "@/lib/supabase/types";
 import { easternWallClockToUtc } from "@/lib/domain/time";
 
 // Every action re-checks the commissioner flag server-side. RLS would
@@ -18,6 +21,11 @@ async function requireCommissioner() {
 const LEAGUES: League[] = ["AL", "NL"];
 const SEEDS = [1, 2, 3, 4, 5, 6];
 
+export interface FieldResult {
+  error?: string;
+  clearedPicks?: number;
+}
+
 /**
  * Replaces the whole playoff field in one go.
  *
@@ -27,9 +35,9 @@ const SEEDS = [1, 2, 3, 4, 5, 6];
  * rows were updated one at a time.
  */
 export async function setPlayoffField(
-  _prev: string | null,
+  _prev: FieldResult | null,
   formData: FormData,
-): Promise<string | null> {
+): Promise<FieldResult> {
   await requireCommissioner();
   const supabase = await createClient();
 
@@ -37,24 +45,24 @@ export async function setPlayoffField(
   for (const league of LEAGUES) {
     for (const seed of SEEDS) {
       const raw = String(formData.get(`${league}_${seed}`) ?? "");
-      if (!raw) return `Every seed needs a team — ${league} ${seed} is empty.`;
+      if (!raw) return { error: `Every seed needs a team — ${league} ${seed} is empty.` };
       rows.push({ league, seed, team_id: Number(raw) });
     }
   }
 
   const teamIds = rows.map((r) => r.team_id);
   if (new Set(teamIds).size !== teamIds.length) {
-    return "A team can only appear once in the field.";
+    return { error: "A team can only appear once in the field." };
   }
 
   const { error: clearError } = await supabase
     .from("playoff_seeds")
     .delete()
     .in("league", LEAGUES);
-  if (clearError) return clearError.message;
+  if (clearError) return { error: clearError.message };
 
   const { error } = await supabase.from("playoff_seeds").insert(rows);
-  if (error) return error.message;
+  if (error) return { error: error.message };
 
   // The Wild Card slots draw straight from the seeds, so they can be filled
   // the moment the field is known — which is what makes the bracket
@@ -79,8 +87,67 @@ export async function setPlayoffField(
       .eq("key", series.key);
   }
 
+  const clearedPicks = await reconcileBracketsWithField(rows);
+
   revalidatePath("/", "layout");
-  return null;
+  return { clearedPicks };
+}
+
+/**
+ * Re-checks every saved bracket against the field that was just written,
+ * and clears the picks it no longer allows.
+ *
+ * The field usually lands before anyone has entered anything, but it also
+ * gets corrected — a seed order typed in wrong on Sunday night and fixed
+ * ten minutes later. Without this, a player who had already picked would
+ * keep picks naming teams that aren't in those matchups any more, and
+ * nothing anywhere would say so: the bracket would look complete and score
+ * zero.
+ *
+ * Runs with the service role because a commissioner can read everyone's
+ * picks but, by policy, can only delete their own.
+ *
+ * Deliberately skipped once entries are locked. After the deadline a
+ * correction would be deleting picks that players can no longer redo,
+ * which is worse than leaving a pick that simply scores as wrong.
+ */
+async function reconcileBracketsWithField(
+  seeds: { league: League; seed: number; team_id: number }[],
+): Promise<number> {
+  if (await picksLocked()) return 0;
+
+  const db = createServiceRoleClient();
+  const [{ data: series }, { data: picks }] = await Promise.all([
+    db.from("series").select("*").order("sort_order"),
+    db.from("bracket_picks").select("*"),
+  ]);
+  if (!series?.length || !picks?.length) return 0;
+
+  const seedTeam = (league: League, seed: number) =>
+    seeds.find((s) => s.league === league && s.seed === seed)?.team_id ?? null;
+
+  const byUser = new Map<string, typeof picks>();
+  for (const pick of picks) {
+    byUser.set(pick.user_id, [...(byUser.get(pick.user_id) ?? []), pick]);
+  }
+
+  let cleared = 0;
+  for (const [userId, theirPicks] of byUser) {
+    const kept = new Set(
+      prunePicks(theirPicks, series as Series[], seedTeam).map((p) => p.series_key),
+    );
+    const stale = theirPicks.filter((p) => !kept.has(p.series_key));
+    if (stale.length === 0) continue;
+
+    const { error } = await db
+      .from("bracket_picks")
+      .delete()
+      .eq("user_id", userId)
+      .in("series_key", stale.map((p) => p.series_key));
+    if (!error) cleared += stale.length;
+  }
+
+  return cleared;
 }
 
 export async function setScoring(
