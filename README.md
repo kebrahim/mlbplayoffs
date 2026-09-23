@@ -1,9 +1,12 @@
-# October — MLB Playoff Bracket
+# Can of Corn — MLB Playoff Bracket
 
 A postseason prediction contest for 5 friends. Before the first pitch of the
 Wild Card round, everyone fills out the entire playoff bracket — who wins each
 of the 11 series, and how many games each one takes — plus a World Series MVP
 and a tiebreaker. Then the app watches the games and keeps score.
+
+Named for the easy pop fly, which is about how hard picking a winner looks
+right up until you have to do it eleven times.
 
 This README is the full spec, and **Build order** at the bottom tracks what is
 done.

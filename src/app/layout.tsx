@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "October",
+  title: "Can of Corn",
   description: "An MLB playoff bracket contest",
 };
 

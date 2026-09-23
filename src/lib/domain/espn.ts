@@ -34,7 +34,7 @@ export function toEspnCode(code: string): string {
 // claims to be Chrome from a server that doesn't handshake like Chrome gets
 // 403'd, while a plain non-browser UA passes. So no browser impersonation,
 // and a couple of variants in case one is temporarily blocked.
-export const ESPN_USER_AGENTS = ["curl/8.7.1", "october-sync/1.0", ""];
+export const ESPN_USER_AGENTS = ["curl/8.7.1", "canofcorn-sync/1.0", ""];
 
 export const ESPN_MLB_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";

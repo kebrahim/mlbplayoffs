@@ -11,7 +11,7 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-heading mb-2 text-3xl tracking-wide uppercase">October</h1>
+      <h1 className="font-heading mb-2 text-3xl tracking-wide uppercase">Can of Corn</h1>
       <p className="mb-8 text-sm text-ink-muted">
         Pick every series of the playoffs before the first pitch.
       </p>

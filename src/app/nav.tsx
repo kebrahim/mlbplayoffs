@@ -32,7 +32,7 @@ export async function Nav() {
           href="/"
           className="font-heading text-lg font-semibold tracking-wide text-accent uppercase"
         >
-          October
+          Can of Corn
         </Link>
 
         {user && (
