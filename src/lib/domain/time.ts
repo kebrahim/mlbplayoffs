@@ -65,3 +65,18 @@ export function utcToEasternWallClock(at: Date): string {
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour") === "24" ? "00" : get("hour")}:${get("minute")}`;
 }
+
+/**
+ * Midnight Eastern on the day of the given instant.
+ *
+ * The sync uses this as the postseason boundary. It has to exist: ESPN's
+ * scoreboard for September carries regular-season games too, and two teams
+ * who meet in the Wild Card round will usually have played each other in
+ * September as well — those games would otherwise attach to the bracket
+ * slot and count toward the series.
+ */
+export function easternDayStart(at: Date): Date {
+  const wall = utcToEasternWallClock(at);
+  const midnight = easternWallClockToUtc(`${wall.slice(0, 10)}T00:00`);
+  return midnight ?? at;
+}

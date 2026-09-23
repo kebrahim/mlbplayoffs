@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { easternWallClockToUtc, utcToEasternWallClock } from "./time";
+import { easternDayStart, easternWallClockToUtc, utcToEasternWallClock } from "./time";
 
 test("a wall clock in daylight time resolves at UTC-4", () => {
   // First pitch of the 2026 Wild Card round: noon ET on Sept 29, EDT.
@@ -37,4 +37,18 @@ test("the round trip through the form input is stable", () => {
     assert.ok(at);
     assert.equal(utcToEasternWallClock(at), wall);
   }
+});
+
+test("the postseason boundary is midnight Eastern on the first day", () => {
+  // First pitch is noon ET on Sept 29; the boundary is that morning, so a
+  // game earlier that day still counts and one the night before does not.
+  const firstPitch = new Date("2026-09-29T16:05:00Z");
+  assert.equal(easternDayStart(firstPitch).toISOString(), "2026-09-29T04:00:00.000Z");
+});
+
+test("the boundary respects Eastern time, not UTC", () => {
+  // A 10pm ET first pitch is already the next day in UTC; the boundary
+  // still has to be the start of the Eastern day the game belongs to.
+  const lateNight = new Date("2026-09-30T02:05:00Z");
+  assert.equal(easternDayStart(lateNight).toISOString(), "2026-09-29T04:00:00.000Z");
 });

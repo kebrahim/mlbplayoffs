@@ -318,15 +318,15 @@ Monospace for numbers and scores, a condensed display face for headings.
 2. ~~Auth — sign up, sign in, profile trigger, middleware.~~ Done.
 3. ~~Admin — playoff field, scoring config, lock time, MVP.~~ Done.
 4. ~~Bracket entry — the tree form, game counts, MVP, tiebreaker, and the lock.~~ Done.
-5. Sync — ESPN fetch, bracket advancement, game attachment.
-6. Scoring — `series_results`, `bracket_pick_scores`, `overall_leaderboard`, and
-   the leaderboard page.
-7. Series page and the post-lock bracket views.
+5. ~~Sync — ESPN fetch, bracket advancement, game attachment.~~ Done.
+6. ~~Scoring — `series_results`, `bracket_pick_scores`, `overall_leaderboard`, and
+   the leaderboard page.~~ Done.
+7. ~~Series page and the post-lock bracket views.~~ Done.
 8. Deploy to Vercel, set env vars, register the cron.
 
-Steps 1–4 have to be done before Tuesday, September 29. Steps 5–7 only need to
-be working before the first Wild Card game finishes, and can land after entries
-lock.
+Everything but the deploy is built. The two crons run at 2am and 9am Eastern —
+after the last game of a night and before anyone looks in the morning — and the
+stale-read sync covers everything in between.
 
 ## Running the schema tests
 

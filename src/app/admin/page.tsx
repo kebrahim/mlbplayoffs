@@ -5,6 +5,8 @@ import { getLockAt } from "@/lib/domain/settings";
 import { utcToEasternWallClock } from "@/lib/domain/time";
 import { Section } from "./section";
 import { LockTimeForm, MvpForm, PlayoffFieldForm, ScoringForm } from "./forms";
+import { SyncButton } from "./sync-button";
+import { LastSynced } from "@/app/last-synced";
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile();
@@ -76,6 +78,16 @@ export default async function AdminPage() {
 
       <Section title="Entry deadline">
         <LockTimeForm value={lockAt ? utcToEasternWallClock(lockAt) : ""} />
+      </Section>
+
+      <Section
+        title="Scores"
+        description="Scores sync themselves whenever anyone loads a page and the data is more than ten minutes old. This button is for when you don't want to wait."
+      >
+        <div className="space-y-3">
+          <LastSynced />
+          <SyncButton />
+        </div>
       </Section>
 
       <Section title="World Series MVP">

@@ -182,11 +182,16 @@ end $$;
 -- ------------------------------------------------------------
 -- leaderboard and tiebreaker
 -- ------------------------------------------------------------
+-- A regular-season game between two playoff teams sits in the date window
+-- the sync pulls. It must never reach the tiebreaker.
+insert into games (id, series_key, game_number, home_team_id, away_team_id, home_score, away_score, status, start_utc)
+values (999, null, null, team('CLE'), team('DET'), 9, 9, 'final', '2026-09-20T16:00:00Z');
+
 do $$
 declare
   total_runs integer := (select total_runs from playoff_total_runs);
 begin
-  perform assert_eq(total_runs, 43, 'total runs across every final game');
+  perform assert_eq(total_runs, 43, 'an unattached game is not counted in the tiebreaker');
   perform assert_eq((select total_points from overall_leaderboard where display_name = 'Alice'),
                     4.0::numeric, 'Alice has 2 + 2');
   perform assert_eq((select total_points from overall_leaderboard where display_name = 'Bob'),
