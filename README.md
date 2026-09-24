@@ -73,7 +73,7 @@ MVP bonus — is editable by the commissioner on `/admin`, and the scoring views
 read them from the database rather than hardcoding them. Changing a value
 re-scores everyone immediately.
 
-### Entering, and the lock
+### Entering, and the window
 
 The playoff field isn't known until the regular season ends on **Sunday,
 September 27, 2026**, and the Wild Card round starts **Tuesday, September 29**.
@@ -81,13 +81,29 @@ So the entry window is roughly two days: the commissioner sets the twelve seeds
 as soon as they're final, everyone fills out a bracket, and everything locks at
 first pitch of the first Wild Card game.
 
+Entry has two ends, both commissioner-set and both enforced in the database:
+
+- **`picks_open_at`** — nothing can be saved before it. The seeds go in on the
+  Sunday night and get corrected, and a bracket saved against a provisional
+  field is a bracket against matchups that no longer exist. Until this time the
+  bracket page is readable and explorable and every write is refused. Leaving it
+  empty opens entry straight away.
+- **`picks_lock_at`** — nothing can be changed after it, and every bracket
+  becomes public.
+
+**Every series needs two answers**, a winner and a length, and neither is filled
+in for you. Picking a team used to default the game count to the shortest the
+series could run, which meant the scoring paid out on a guess nobody had made.
+A pick can now sit with no length, the entry form marks every one that does, and
+the length bonus only pays on a number a player actually chose.
+
 **Picks are private until the lock.** Before it, you can see your own bracket
 and nobody else's; the leaderboard shows only who has entered. After it, every
 bracket is visible to everyone. The commissioner can see all picks at all times,
 so they can chase down whoever hasn't entered.
 
-The lock timestamp is a setting, not a constant — the commissioner can move it
-from `/admin` if a game gets postponed, and the database enforces it (see
+Both timestamps are settings, not constants — the commissioner can move either
+from `/admin` if a game gets postponed, and the database enforces them (see
 **Auth & authorization**).
 
 ---
@@ -120,15 +136,21 @@ form.
 - `profiles.is_commissioner` gates admin writes, through an `is_commissioner()`
   SQL helper used by the RLS policies. A `before update` trigger reverts any
   attempt by a signed-in user to set that column on themselves.
-- A `picks_locked()` SQL helper reads `app_settings.picks_lock_at` and is what
-  the prediction tables' policies are written against, so the lock is enforced
-  in the database and not only in the UI:
+- Three SQL helpers read `app_settings` and are what the prediction tables'
+  policies are written against, so the entry window is enforced in the database
+  and not only in the UI: `picks_locked()` (`picks_lock_at` has passed),
+  `picks_open()` (`picks_open_at` has passed, or was never set), and
+  `picks_editable()`, which is the conjunction and the one every write policy
+  actually names.
 
-  | Table | Select | Insert / update |
+  | Table | Select | Insert / update / delete |
   |---|---|---|
-  | `bracket_picks` | own rows, or any row if `is_commissioner()` or `picks_locked()` | own rows, and only while `not picks_locked()` |
+  | `bracket_picks` | own rows, or any row if `is_commissioner()` or `picks_locked()` | own rows, and only while `picks_editable()` |
   | `mvp_picks` | same | same |
   | `tiebreaker_predictions` | same | same |
+
+  The pages ask these functions too, rather than comparing clocks, so a page can
+  never offer a save the database is going to refuse.
 
 - Reference data (`teams`, `players`, `playoff_seeds`, `series`, `games`,
   `scoring_config`) is readable by any signed-in player and writable only by the
@@ -147,12 +169,12 @@ form.
 | `playoff_seeds` | The field: `(league, seed 1–6) → team_id` |
 | `series` | The 11 bracket slots, seeded once and never changed — round, league, best-of, and which slots feed into them |
 | `games` | Synced from ESPN, keyed by ESPN's event id, each attached to a series |
-| `bracket_picks` | One row per player per series: predicted winner and predicted number of games |
+| `bracket_picks` | One row per player per series: predicted winner, and predicted number of games once chosen (nullable — it is not defaulted) |
 | `mvp_picks` | One row per player: predicted World Series MVP |
 | `tiebreaker_predictions` | One row per player: total playoff runs guess |
 | `world_series_mvp` | Single row, commissioner-set: the actual MVP |
 | `scoring_config` | Single row: the four round values, the length bonus, the MVP bonus |
-| `app_settings` | Key/value — `picks_lock_at`, `last_synced_at` |
+| `app_settings` | Key/value — `picks_open_at`, `picks_lock_at`, `last_synced_at` |
 
 `series` rows are identified by stable keys so picks and results always line up,
 whichever teams end up in them:
@@ -239,9 +261,13 @@ stands.
 
 **`/my-bracket`** — The entry form. Pick a winner and a game count for each
 series, working forward through the rounds; later rounds offer only the teams
-your own earlier picks left alive. Then the MVP pick and the tiebreaker. After
-the lock this becomes a read-only view of your bracket with each pick marked
-hit, missed or still alive.
+your own earlier picks left alive. Then the MVP pick and the tiebreaker.
+Anything still unanswered is marked — a "still to do" list at the top, a done
+count on each round, and a flag on every series missing a winner or a length —
+so an unfinished bracket never looks finished. Before `picks_open_at` the same
+form is explorable but saves nothing, and says so. After the lock it becomes a
+read-only view of your bracket with each pick marked hit, missed or still
+alive.
 
 **`/leaderboard`** — Standings. Before the lock it shows only who has entered;
 after it, the full table plus everyone's bracket.
@@ -262,6 +288,7 @@ scores, who's ahead, and how each player's pick is doing.
   Wild Card matchups, which is what makes brackets fillable, and syncs the
   twelve teams' rosters into `players`.
 - **Scoring** — the four round values, the length bonus, the MVP bonus.
+- **Entry opens** — when saving becomes possible. Blank means straight away.
 - **Lock time** — the entry deadline.
 - **Scores** — last sync time and a manual sync button.
 - **World Series MVP** — record the actual winner.

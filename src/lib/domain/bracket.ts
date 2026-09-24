@@ -104,8 +104,40 @@ export function possibleGameCounts(bestOf: number): number[] {
   return counts;
 }
 
-/** True once every slot has a pick — what the entry form gates "done" on. */
-export function isBracketComplete(picks: PickLike[], allSeries: Series[]): boolean {
-  const picked = new Set(picks.map((p) => p.series_key));
-  return allSeries.every((s) => picked.has(s.key));
+/** A pick as the entry form holds it: a winner, and a length once chosen. */
+export type GamePickLike = PickLike & { predicted_games: number | null };
+
+export interface BracketGaps {
+  /** Slots with no pick at all, in bracket order. */
+  needWinner: string[];
+  /** Slots with a winner but no game count, in bracket order. */
+  needGames: string[];
+}
+
+/**
+ * What a bracket is still missing, split by what the player has to do
+ * about it.
+ *
+ * The two are separate because they read differently: a slot with no
+ * winner may simply be waiting on an earlier round, while a slot with a
+ * winner and no length is a question the player skipped. The entry form
+ * labels them accordingly instead of showing one "incomplete" count.
+ */
+export function bracketGaps(picks: GamePickLike[], allSeries: Series[]): BracketGaps {
+  const byKey = new Map(picks.map((p) => [p.series_key, p]));
+  const gaps: BracketGaps = { needWinner: [], needGames: [] };
+
+  for (const series of [...allSeries].sort((x, y) => x.sort_order - y.sort_order)) {
+    const pick = byKey.get(series.key);
+    if (!pick) gaps.needWinner.push(series.key);
+    else if (pick.predicted_games === null) gaps.needGames.push(series.key);
+  }
+
+  return gaps;
+}
+
+/** True once every slot has both a winner and a length. */
+export function isBracketComplete(picks: GamePickLike[], allSeries: Series[]): boolean {
+  const { needWinner, needGames } = bracketGaps(picks, allSeries);
+  return needWinner.length === 0 && needGames.length === 0;
 }

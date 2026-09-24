@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { League, Series } from "@/lib/supabase/types";
 import {
+  bracketGaps,
   candidatesFor,
   isBracketComplete,
   possibleGameCounts,
@@ -127,12 +128,40 @@ test("prunePicks drops a pick whose own slot never allowed it", () => {
   assert.deepEqual(prunePicks(picks, AL_BRACKET, seedTeam), []);
 });
 
-test("a bracket is complete only when every slot has a pick", () => {
-  const partial = [{ series_key: "AL_WC_36", predicted_team_id: 103 }];
+test("a bracket is complete only when every slot has a winner and a length", () => {
+  const partial = [{ series_key: "AL_WC_36", predicted_team_id: 103, predicted_games: 2 }];
   assert.equal(isBracketComplete(partial, AL_BRACKET), false);
 
-  const full = AL_BRACKET.map((s) => ({ series_key: s.key, predicted_team_id: 101 }));
+  const full = AL_BRACKET.map((s) => ({
+    series_key: s.key,
+    predicted_team_id: 101,
+    predicted_games: 2,
+  }));
   assert.equal(isBracketComplete(full, AL_BRACKET), true);
+
+  // A winner with no length is not a finished pick, however complete the
+  // bracket looks.
+  const noLength = full.map((p, i) => (i === 0 ? { ...p, predicted_games: null } : p));
+  assert.equal(isBracketComplete(noLength, AL_BRACKET), false);
+});
+
+test("bracketGaps separates a missing winner from a missing length", () => {
+  const picks = [
+    { series_key: "AL_WC_36", predicted_team_id: 103, predicted_games: 3 },
+    { series_key: "AL_WC_45", predicted_team_id: 105, predicted_games: null },
+  ];
+
+  assert.deepEqual(bracketGaps(picks, AL_BRACKET), {
+    // In bracket order, not the order the picks came in.
+    needWinner: ["AL_DS_1", "AL_DS_2", "AL_CS"],
+    needGames: ["AL_WC_45"],
+  });
+});
+
+test("an empty bracket needs every winner and no lengths yet", () => {
+  const gaps = bracketGaps([], AL_BRACKET);
+  assert.equal(gaps.needWinner.length, AL_BRACKET.length);
+  assert.deepEqual(gaps.needGames, []);
 });
 
 test("correcting the playoff field invalidates picks the new field can't reach", () => {

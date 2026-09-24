@@ -3,7 +3,7 @@ import type { Player, Series, Team } from "@/lib/supabase/types";
 interface Pick {
   series_key: string;
   predicted_team_id: number;
-  predicted_games: number;
+  predicted_games: number | null;
 }
 
 /**
@@ -38,7 +38,13 @@ export function BracketReadOnly({
             <li key={s.key} className="flex items-center justify-between px-4 py-3 text-sm">
               <span className="text-ink-muted">{s.label}</span>
               <span className="font-mono">
-                {pick ? `${teamName(pick.predicted_team_id)} in ${pick.predicted_games}` : (
+                {pick ? (
+                  // A length is optional at rest, so a bracket left half
+                  // finished says so rather than implying a number.
+                  `${teamName(pick.predicted_team_id)}${
+                    pick.predicted_games === null ? ", no length" : ` in ${pick.predicted_games}`
+                  }`
+                ) : (
                   <span className="text-dead">no pick</span>
                 )}
               </span>

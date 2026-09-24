@@ -7,11 +7,26 @@ export async function getSetting(key: string): Promise<string | null> {
   return data?.value ?? null;
 }
 
-export async function getLockAt(): Promise<Date | null> {
-  const value = await getSetting("picks_lock_at");
+async function getInstant(key: string): Promise<Date | null> {
+  const value = await getSetting(key);
   if (!value) return null;
   const at = new Date(value);
   return Number.isNaN(at.getTime()) ? null : at;
+}
+
+export function getLockAt(): Promise<Date | null> {
+  return getInstant("picks_lock_at");
+}
+
+/**
+ * When entry opens. Null means it was never held shut.
+ *
+ * The seeds are not final until the last out of the regular season, and
+ * they get corrected afterwards, so the commissioner can keep the bracket
+ * readable while nothing can be saved against a field that may still move.
+ */
+export function getOpenAt(): Promise<Date | null> {
+  return getInstant("picks_open_at");
 }
 
 /**
@@ -24,6 +39,26 @@ export async function getLockAt(): Promise<Date | null> {
 export async function picksLocked(): Promise<boolean> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("picks_locked");
+  return data ?? false;
+}
+
+/** Whether the entry window has opened. Same reasoning as picksLocked(). */
+export async function picksOpen(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("picks_open");
+  return data ?? true;
+}
+
+/**
+ * Whether a bracket can be written right now — open, and not yet locked.
+ *
+ * This is the one the pages and the save action ask. It is the same
+ * function the write policies are written against, so the page can never
+ * offer a save the database is going to refuse.
+ */
+export async function picksEditable(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("picks_editable");
   return data ?? false;
 }
 

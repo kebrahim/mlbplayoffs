@@ -170,6 +170,22 @@ do $$ begin
                     false, 'the length is marked wrong');
 end $$;
 
+-- A pick with no game count: the winner still scores, the bonus never does.
+-- The entry form leaves the length unset until someone picks one, so this
+-- is a normal state for a half-finished bracket, not a broken row.
+update bracket_picks set predicted_games = null
+where user_id = '11111111-1111-1111-1111-111111111111' and series_key = 'AL_WC_36';
+do $$ begin
+  perform assert_eq((select points from bracket_pick_scores
+                     where series_key = 'AL_WC_36' and user_id = '11111111-1111-1111-1111-111111111111'),
+                    1.0::numeric, 'no length picked pays the round but not the bonus');
+  perform assert_eq((select length_correct from bracket_pick_scores
+                     where series_key = 'AL_WC_36' and user_id = '11111111-1111-1111-1111-111111111111'),
+                    false, 'an unpicked length reads false, not null');
+end $$;
+update bracket_picks set predicted_games = 3
+where user_id = '11111111-1111-1111-1111-111111111111' and series_key = 'AL_WC_36';
+
 -- An unresolved series scores nothing and reads as unresolved.
 do $$ begin
   perform assert_eq((select resolved from series_results sr
@@ -222,6 +238,60 @@ update app_settings set value = '2099-01-01T00:00:00Z' where key = 'picks_lock_a
 do $$ begin
   perform assert_eq(picks_locked(), false, 'a future lock time means picks are open');
 end $$;
+
+-- ------------------------------------------------------------
+-- the other end of the window: entry has to have opened
+-- ------------------------------------------------------------
+do $$ begin
+  perform assert_eq(picks_open(), true, 'no opening time means entry was never held shut');
+  perform assert_eq(picks_editable(), true, 'open and unlocked means writable');
+end $$;
+
+update app_settings set value = '2099-01-01T00:00:00Z' where key = 'picks_open_at';
+do $$ begin
+  perform assert_eq(picks_open(), false, 'a future opening time holds entry shut');
+  perform assert_eq(picks_editable(), false, 'and nothing is writable while it does');
+end $$;
+
+set role authenticated;
+set test.user_id = '22222222-2222-2222-2222-222222222222';
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    insert into bracket_picks (user_id, series_key, predicted_team_id, predicted_games)
+    values ('22222222-2222-2222-2222-222222222222', 'NL_WC_36', team('MIL'), 3);
+  exception when others then
+    blocked := true;
+  end;
+  perform assert_eq(blocked, true, 'a pick cannot be saved before entry opens');
+end $$;
+reset role;
+
+update app_settings set value = '2020-01-01T00:00:00Z' where key = 'picks_open_at';
+do $$ begin
+  perform assert_eq(picks_open(), true, 'a past opening time opens entry');
+end $$;
+
+set role authenticated;
+set test.user_id = '22222222-2222-2222-2222-222222222222';
+do $$ begin
+  insert into bracket_picks (user_id, series_key, predicted_team_id, predicted_games)
+  values ('22222222-2222-2222-2222-222222222222', 'NL_WC_36', team('MIL'), 3);
+  perform assert_eq((select count(*)::int from bracket_picks
+                     where user_id = '22222222-2222-2222-2222-222222222222'
+                       and series_key = 'NL_WC_36'), 1,
+                    'and the same pick saves once it has');
+  -- Clearing a pick has to work too; there was no delete policy before.
+  delete from bracket_picks
+  where user_id = '22222222-2222-2222-2222-222222222222' and series_key = 'NL_WC_36';
+  perform assert_eq((select count(*)::int from bracket_picks
+                     where user_id = '22222222-2222-2222-2222-222222222222'
+                       and series_key = 'NL_WC_36'), 0,
+                    'and a player can take their own pick back');
+end $$;
+reset role;
 
 -- Alice, before the lock: her own picks only.
 set role authenticated;

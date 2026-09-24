@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
-import { getLockAt, picksLocked } from "@/lib/domain/settings";
+import { getLockAt, getOpenAt, picksEditable, picksLocked } from "@/lib/domain/settings";
 import { BracketForm } from "./bracket-form";
 import { BracketReadOnly } from "./bracket-read-only";
 
@@ -20,7 +20,9 @@ export default async function MyBracketPage() {
     { data: mvp },
     { data: tiebreaker },
     locked,
+    editable,
     lockAt,
+    openAt,
   ] = await Promise.all([
     supabase.from("series").select("*").order("sort_order"),
     supabase.from("teams").select("*").order("name"),
@@ -37,8 +39,21 @@ export default async function MyBracketPage() {
       .eq("user_id", profile.id)
       .maybeSingle(),
     picksLocked(),
+    picksEditable(),
     getLockAt(),
+    getOpenAt(),
   ]);
+
+  const when = (at: Date) =>
+    at.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
 
   if ((seeds ?? []).length === 0) {
     return (
@@ -79,24 +94,9 @@ export default async function MyBracketPage() {
       <h1 className="font-heading text-3xl tracking-wide uppercase">My bracket</h1>
       <p className="mt-3 mb-8 max-w-2xl text-sm text-ink-muted">
         Work forward through the rounds — each one offers the teams your own earlier picks left
-        alive. Save as often as you like; nothing is final until the deadline
-        {lockAt && (
-          <>
-            {" "}
-            (
-            {lockAt.toLocaleString("en-US", {
-              timeZone: "America/New_York",
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              timeZoneName: "short",
-            })}
-            )
-          </>
-        )}
-        .
+        alive. Every series needs both a winner and a length. Save as often as you like; nothing
+        is final until the deadline
+        {lockAt && <> ({when(lockAt)})</>}.
       </p>
 
       <BracketForm
@@ -107,6 +107,8 @@ export default async function MyBracketPage() {
         initialPicks={picks ?? []}
         initialMvp={mvp?.player_id ?? null}
         initialTiebreaker={tiebreaker?.total_runs_guess ?? null}
+        canSave={editable}
+        opensAt={openAt ? when(openAt) : null}
       />
     </div>
   );

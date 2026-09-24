@@ -27,6 +27,13 @@ test("the right winner and the wrong length pays the round only", () => {
   assert.deepEqual(score, { resolved: true, correct: true, lengthCorrect: false, points: 2 });
 });
 
+test("no length picked means the round only, never the bonus", () => {
+  // The game count is optional at rest: the form leaves it unset until
+  // someone chooses. An unanswered question can't be right.
+  const score = scorePick(7, null, { round: "DS", winnerTeamId: 7, gamesPlayed: 4 }, CONFIG);
+  assert.deepEqual(score, { resolved: true, correct: true, lengthCorrect: false, points: 2 });
+});
+
 test("the wrong winner pays nothing, even with the length right", () => {
   const score = scorePick(8, 4, { round: "DS", winnerTeamId: 7, gamesPlayed: 4 }, CONFIG);
   assert.deepEqual(score, { resolved: true, correct: false, lengthCorrect: false, points: 0 });

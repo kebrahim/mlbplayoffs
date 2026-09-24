@@ -12,10 +12,17 @@ contest rules in it are the requirements.
   `supabase/tests/checks.sql`.
 - **The scoring values are data, not constants.** They live in the
   `scoring_config` row and the commissioner edits them. Never hardcode 1/2/3/5.
-- **The lock and pick privacy are enforced in Postgres**, by `picks_locked()`
-  and the RLS policies written against it. UI checks are for rendering only;
-  ask the database with `picksLocked()` rather than comparing clocks, so the
-  page can't disagree with what a write will be allowed to do.
+- **The entry window and pick privacy are enforced in Postgres**, by
+  `picks_open()`, `picks_locked()`, `picks_editable()` and the RLS policies
+  written against them. UI checks are for rendering only; ask the database with
+  `picksEditable()` — or `picksLocked()`/`picksOpen()` when a message has to
+  tell the two ends apart — rather than comparing clocks, so the page can't
+  disagree with what a write will be allowed to do.
+- **`bracket_picks.predicted_games` is nullable and must stay that way.** A
+  player picks a winner and a length as two separate answers, and the length
+  bonus pays only on a number somebody chose. Anything that reads the column
+  has to handle null — in SQL that means `coalesce(... = ..., false)`, since
+  `null = 3` is null, not false.
 - **Migrations are numbered and applied by hand** in the Supabase SQL editor.
   There is no runner. Never edit an applied migration — add a new one.
 - Types in `src/lib/supabase/types.ts` are **type aliases, not interfaces**.

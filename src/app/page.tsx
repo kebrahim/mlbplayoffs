@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getLockAt, getScoringConfig, picksLocked } from "@/lib/domain/settings";
+import { getLockAt, getOpenAt, getScoringConfig, picksLocked, picksOpen } from "@/lib/domain/settings";
 import { maxPossibleScore } from "@/lib/domain/scoring";
 import type { Series } from "@/lib/supabase/types";
 
@@ -8,11 +8,13 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: series }, lockAt, scoring, locked] = await Promise.all([
+  const [{ data: series }, lockAt, openAt, scoring, locked, entryOpen] = await Promise.all([
     supabase.from("series").select("*").order("sort_order"),
     getLockAt(),
+    getOpenAt(),
     getScoringConfig(),
     picksLocked(),
+    picksOpen(),
   ]);
 
   const allSeries = (series ?? []) as Series[];
@@ -38,23 +40,18 @@ export default async function HomePage() {
               href="/my-bracket"
               className="inline-block rounded bg-accent px-5 py-2.5 font-medium text-accent-ink transition-colors hover:bg-accent-hover"
             >
-              Fill out your bracket
+              {entryOpen ? "Fill out your bracket" : "Look at the bracket"}
             </Link>
           )}
         </div>
 
+        {!locked && !entryOpen && openAt && (
+          <p className="mt-3 font-mono text-sm text-accent">Entry opens {shortWhen(openAt)}</p>
+        )}
+
         {lockAt && (
           <p className="mt-3 font-mono text-sm text-ink-muted">
-            {locked ? "Locked" : "Locks"}{" "}
-            {lockAt.toLocaleString("en-US", {
-              timeZone: "America/New_York",
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              timeZoneName: "short",
-            })}
+            {locked ? "Locked" : "Locks"} {shortWhen(lockAt)}
           </p>
         )}
       </section>
@@ -86,6 +83,18 @@ export default async function HomePage() {
       </section>
     </div>
   );
+}
+
+function shortWhen(at: Date): string {
+  return at.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 }
 
 function Row({ label, value }: { label: string; value: number }) {

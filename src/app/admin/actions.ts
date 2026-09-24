@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
 import { prunePicks } from "@/lib/domain/bracket";
-import { picksLocked } from "@/lib/domain/settings";
+import { getLockAt, picksLocked } from "@/lib/domain/settings";
 import type { League, Series } from "@/lib/supabase/types";
 import { easternWallClockToUtc } from "@/lib/domain/time";
 
@@ -203,6 +203,43 @@ export async function setLockTime(
     .from("app_settings")
     .update({ value: at.toISOString() })
     .eq("key", "picks_lock_at");
+  if (error) return error.message;
+
+  revalidatePath("/", "layout");
+  return null;
+}
+
+/**
+ * When entry opens. Blank clears it, which reopens entry immediately.
+ *
+ * The field goes in on the last Sunday of the regular season and gets
+ * corrected afterwards. Holding entry shut until this time means nobody
+ * fills in a bracket against seeds that are about to move.
+ */
+export async function setOpenTime(
+  _prev: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  await requireCommissioner();
+
+  const local = String(formData.get("open_at") ?? "");
+  let value: string | null = null;
+
+  if (local) {
+    const at = easternWallClockToUtc(local);
+    if (!at) return "That date didn't parse.";
+
+    const lockAt = await getLockAt();
+    if (lockAt && at >= lockAt) {
+      return "Entry has to open before the deadline, or nobody can enter at all.";
+    }
+    value = at.toISOString();
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: "picks_open_at", value });
   if (error) return error.message;
 
   revalidatePath("/", "layout");

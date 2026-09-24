@@ -85,7 +85,9 @@ export type BracketPick = {
   user_id: string;
   series_key: string;
   predicted_team_id: number;
-  predicted_games: number;
+  // Null until the player picks a length — picking a team no longer picks
+  // a game count for them.
+  predicted_games: number | null;
   updated_at: string;
 }
 
@@ -121,7 +123,7 @@ export type BracketPickScore = {
   user_id: string;
   series_key: string;
   predicted_team_id: number;
-  predicted_games: number;
+  predicted_games: number | null;
   round: Round;
   winner_team_id: number | null;
   games_played: number;
@@ -225,6 +227,8 @@ export type Database = {
     };
     Functions: {
       picks_locked: { Args: Record<string, never>; Returns: boolean };
+      picks_open: { Args: Record<string, never>; Returns: boolean };
+      picks_editable: { Args: Record<string, never>; Returns: boolean };
       is_commissioner: { Args: Record<string, never>; Returns: boolean };
     };
   };

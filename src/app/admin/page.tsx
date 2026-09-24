@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
-import { getLockAt } from "@/lib/domain/settings";
+import { getLockAt, getOpenAt, picksOpen } from "@/lib/domain/settings";
 import { utcToEasternWallClock } from "@/lib/domain/time";
 import { Section } from "./section";
-import { LockTimeForm, MvpForm, PlayoffFieldForm, ScoringForm } from "./forms";
+import { LockTimeForm, MvpForm, OpenTimeForm, PlayoffFieldForm, ScoringForm } from "./forms";
 import { SyncButton } from "./sync-button";
 import { LastSynced } from "@/app/last-synced";
 
@@ -23,20 +23,31 @@ export default async function AdminPage() {
     { data: picks },
     { data: mvp },
     lockAt,
+    openAt,
+    entryOpen,
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
     supabase.from("playoff_seeds").select("*"),
     supabase.from("scoring_config").select("*").single(),
     supabase.from("players").select("*").order("full_name"),
     supabase.from("profiles").select("*").order("display_name"),
-    supabase.from("bracket_picks").select("user_id, series_key"),
+    supabase.from("bracket_picks").select("user_id, series_key, predicted_games"),
     supabase.from("world_series_mvp").select("player_id").maybeSingle(),
     getLockAt(),
+    getOpenAt(),
+    picksOpen(),
   ]);
 
-  const picksByUser = new Map<string, number>();
+  // Counted as "done" only with a length as well as a winner, so a bracket
+  // that reads 11/11 here really is finished.
+  const doneByUser = new Map<string, number>();
+  const missingLengthByUser = new Map<string, number>();
   for (const pick of picks ?? []) {
-    picksByUser.set(pick.user_id, (picksByUser.get(pick.user_id) ?? 0) + 1);
+    if (pick.predicted_games === null) {
+      missingLengthByUser.set(pick.user_id, (missingLengthByUser.get(pick.user_id) ?? 0) + 1);
+    } else {
+      doneByUser.set(pick.user_id, (doneByUser.get(pick.user_id) ?? 0) + 1);
+    }
   }
 
   return (
@@ -46,7 +57,8 @@ export default async function AdminPage() {
       <Section title="Participants" open>
         <ul className="divide-y divide-border">
           {(participants ?? []).map((person) => {
-            const entered = picksByUser.get(person.id) ?? 0;
+            const done = doneByUser.get(person.id) ?? 0;
+            const missingLength = missingLengthByUser.get(person.id) ?? 0;
             return (
               <li key={person.id} className="flex items-center justify-between py-2 text-sm">
                 <span>
@@ -55,8 +67,13 @@ export default async function AdminPage() {
                     <span className="ml-2 text-xs text-ink-muted">commissioner</span>
                   )}
                 </span>
-                <span className={entered === 11 ? "font-mono text-good" : "font-mono text-ink-muted"}>
-                  {entered} / 11 series picked
+                <span className={done === 11 ? "font-mono text-good" : "font-mono text-ink-muted"}>
+                  {done} / 11 series complete
+                  {missingLength > 0 && (
+                    <span className="ml-2 text-accent">
+                      {missingLength} without a length
+                    </span>
+                  )}
                 </span>
               </li>
             );
@@ -74,6 +91,18 @@ export default async function AdminPage() {
 
       <Section title="Scoring">
         {scoring && <ScoringForm config={scoring} />}
+      </Section>
+
+      <Section
+        title="Entry opens"
+        description={
+          entryOpen
+            ? "Entry is open — brackets can be saved."
+            : "Entry is held shut. People can look at the bracket, but nothing saves."
+        }
+        open={!entryOpen}
+      >
+        <OpenTimeForm value={openAt ? utcToEasternWallClock(openAt) : ""} />
       </Section>
 
       <Section title="Entry deadline">

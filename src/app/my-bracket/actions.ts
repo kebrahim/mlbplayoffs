@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/current-user";
-import { picksLocked } from "@/lib/domain/settings";
+import { getOpenAt, picksLocked, picksOpen } from "@/lib/domain/settings";
 import { prunePicks } from "@/lib/domain/bracket";
 import type { League, Series } from "@/lib/supabase/types";
 
 export interface BracketSubmission {
-  picks: { series_key: string; predicted_team_id: number; predicted_games: number }[];
+  picks: { series_key: string; predicted_team_id: number; predicted_games: number | null }[];
   mvpPlayerId: number | null;
   totalRunsGuess: number | null;
 }
@@ -27,6 +27,24 @@ export async function saveBracket(submission: BracketSubmission): Promise<string
 
   if (await picksLocked()) {
     return "Entries are closed — the first pitch has already been thrown.";
+  }
+
+  // The other end of the window. The seeds can still move before this, so
+  // a bracket saved now would be a bracket against matchups that no longer
+  // exist.
+  if (!(await picksOpen())) {
+    const openAt = await getOpenAt();
+    return openAt
+      ? `Entry doesn't open until ${openAt.toLocaleString("en-US", {
+          timeZone: "America/New_York",
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+        })}.`
+      : "Entry isn't open yet.";
   }
 
   const supabase = await createClient();

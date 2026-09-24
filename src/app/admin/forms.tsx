@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { Player, PlayoffSeed, ScoringConfig, Team } from "@/lib/supabase/types";
-import { setLockTime, setPlayoffField, setScoring, setWorldSeriesMvp } from "./actions";
+import { setLockTime, setOpenTime, setPlayoffField, setScoring, setWorldSeriesMvp } from "./actions";
 
 const SEEDS = [1, 2, 3, 4, 5, 6];
 
@@ -138,6 +138,30 @@ export function LockTimeForm({ value }: { value: string }) {
         after this, and everyone&apos;s picks become visible to everyone.
       </p>
       <SaveRow error={error} pending={pending} label="Save deadline" />
+    </form>
+  );
+}
+
+export function OpenTimeForm({ value }: { value: string }) {
+  const [error, formAction, pending] = useActionState(setOpenTime, null);
+
+  return (
+    <form action={formAction}>
+      <label className="flex items-center gap-3">
+        <input
+          name="open_at"
+          type="datetime-local"
+          defaultValue={value}
+          className="rounded border border-border bg-surface px-2 py-1.5 font-mono text-sm"
+        />
+        <span className="text-sm text-ink-muted">Eastern time</span>
+      </label>
+      <p className="mt-4 max-w-2xl text-sm text-ink-muted">
+        Until this time the bracket page is readable and nothing can be saved — use it to keep
+        people from entering against seeds that might still change. Leave it empty to open entry
+        straight away.
+      </p>
+      <SaveRow error={error} pending={pending} label="Save opening time" />
     </form>
   );
 }

@@ -54,7 +54,7 @@ export interface SeriesOutcome {
  */
 export function scorePick(
   predictedTeamId: number,
-  predictedGames: number,
+  predictedGames: number | null,
   outcome: SeriesOutcome,
   config: ScoringConfig,
 ): PickScore {
@@ -67,7 +67,9 @@ export function scorePick(
     return { resolved: true, correct: false, lengthCorrect: false, points: 0 };
   }
 
-  const lengthCorrect = predictedGames === outcome.gamesPlayed;
+  // A pick with no length never earns the bonus: the game count is a
+  // question the player answers, not one the form answers for them.
+  const lengthCorrect = predictedGames !== null && predictedGames === outcome.gamesPlayed;
   const points = roundPoints(outcome.round, config) + (lengthCorrect ? config.length_bonus : 0);
   return { resolved: true, correct: true, lengthCorrect, points };
 }
