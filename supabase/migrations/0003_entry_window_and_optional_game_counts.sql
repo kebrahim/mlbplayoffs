@@ -15,6 +15,16 @@
 --      if they had. Now a pick can carry a null game count, the entry form
 --      leaves it unset until it is chosen, and the length bonus pays only
 --      on a number somebody actually picked.
+--
+-- Safe to run more than once. Every statement here either replaces what it
+-- creates or drops it first, because this one takes an AccessExclusiveLock
+-- on `bracket_picks` while the deployed app is reading it, and a run that
+-- loses a deadlock rolls back and has to be repeated.
+
+-- Fail fast instead of queueing behind a page load. A lock this migration
+-- can't get in ten seconds means traffic is in the way; wait a moment and
+-- run it again.
+set lock_timeout = '10s';
 
 -- ============================================================
 -- 1. the entry window
@@ -25,7 +35,7 @@ insert into app_settings (key, value) values ('picks_open_at', null)
 -- Null or missing means the window was never held shut — the same reading
 -- picks_locked() gives an unset deadline, so a fresh install behaves as it
 -- did before this migration.
-create function picks_open()
+create or replace function picks_open()
 returns boolean
 language sql
 security definer
@@ -45,7 +55,7 @@ $$;
 -- What every write policy below is written against. The UI asks this too,
 -- rather than comparing clocks, so a page can't offer a save the database
 -- is going to refuse.
-create function picks_editable()
+create or replace function picks_editable()
 returns boolean
 language sql
 security definer
@@ -55,9 +65,12 @@ as $$
   select picks_open() and not picks_locked();
 $$;
 
-drop policy "players insert their own picks before the lock" on bracket_picks;
-drop policy "players update their own picks before the lock" on bracket_picks;
-drop policy "players delete their own picks before the lock" on bracket_picks;
+drop policy if exists "players insert their own picks before the lock" on bracket_picks;
+drop policy if exists "players update their own picks before the lock" on bracket_picks;
+drop policy if exists "players delete their own picks before the lock" on bracket_picks;
+drop policy if exists "players insert their own picks while entry is open" on bracket_picks;
+drop policy if exists "players update their own picks while entry is open" on bracket_picks;
+drop policy if exists "players delete their own picks while entry is open" on bracket_picks;
 
 create policy "players insert their own picks while entry is open"
   on bracket_picks for insert to authenticated
@@ -70,8 +83,11 @@ create policy "players delete their own picks while entry is open"
   on bracket_picks for delete to authenticated
   using (auth.uid() = user_id and picks_editable());
 
-drop policy "players insert their own mvp pick before the lock" on mvp_picks;
-drop policy "players update their own mvp pick before the lock" on mvp_picks;
+drop policy if exists "players insert their own mvp pick before the lock" on mvp_picks;
+drop policy if exists "players update their own mvp pick before the lock" on mvp_picks;
+drop policy if exists "players insert their own mvp pick while entry is open" on mvp_picks;
+drop policy if exists "players update their own mvp pick while entry is open" on mvp_picks;
+drop policy if exists "players delete their own mvp pick while entry is open" on mvp_picks;
 
 create policy "players insert their own mvp pick while entry is open"
   on mvp_picks for insert to authenticated
@@ -87,8 +103,11 @@ create policy "players delete their own mvp pick while entry is open"
   on mvp_picks for delete to authenticated
   using (auth.uid() = user_id and picks_editable());
 
-drop policy "players insert their own tiebreaker before the lock" on tiebreaker_predictions;
-drop policy "players update their own tiebreaker before the lock" on tiebreaker_predictions;
+drop policy if exists "players insert their own tiebreaker before the lock" on tiebreaker_predictions;
+drop policy if exists "players update their own tiebreaker before the lock" on tiebreaker_predictions;
+drop policy if exists "players insert their own tiebreaker while entry is open" on tiebreaker_predictions;
+drop policy if exists "players update their own tiebreaker while entry is open" on tiebreaker_predictions;
+drop policy if exists "players delete their own tiebreaker while entry is open" on tiebreaker_predictions;
 
 create policy "players insert their own tiebreaker while entry is open"
   on tiebreaker_predictions for insert to authenticated
