@@ -1,4 +1,4 @@
-import type { Player, Series, Team } from "@/lib/supabase/types";
+import type { Series, Team } from "@/lib/supabase/types";
 
 interface Pick {
   series_key: string;
@@ -14,20 +14,17 @@ interface Pick {
 export function BracketReadOnly({
   series,
   teams,
-  players,
   picks,
-  mvpPlayerId,
+  mvpName,
   tiebreaker,
 }: {
   series: Series[];
   teams: Team[];
-  players: Player[];
   picks: Pick[];
-  mvpPlayerId: number | null;
+  mvpName: string | null;
   tiebreaker: number | null;
 }) {
   const teamName = (id: number) => teams.find((t) => t.id === id)?.short_name ?? "—";
-  const mvp = players.find((p) => p.id === mvpPlayerId);
 
   return (
     <div className="space-y-6">
@@ -55,7 +52,7 @@ export function BracketReadOnly({
 
       <dl className="grid max-w-md grid-cols-2 gap-y-2 text-sm">
         <dt className="text-ink-muted">World Series MVP</dt>
-        <dd className="text-right font-mono">{mvp?.full_name ?? <span className="text-dead">—</span>}</dd>
+        <dd className="text-right font-mono">{mvpName ?? <span className="text-dead">—</span>}</dd>
         <dt className="text-ink-muted">Total runs</dt>
         <dd className="text-right font-mono">{tiebreaker ?? <span className="text-dead">—</span>}</dd>
       </dl>

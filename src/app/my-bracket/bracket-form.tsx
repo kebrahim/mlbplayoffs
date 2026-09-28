@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import type { League, Player, PlayoffSeed, Series, Team } from "@/lib/supabase/types";
+import type { League, PlayoffSeed, Series, Team } from "@/lib/supabase/types";
 import {
   bracketGaps,
   candidatesFor,
@@ -30,7 +30,6 @@ export function BracketForm({
   series,
   teams,
   seeds,
-  players,
   initialPicks,
   initialMvp,
   initialTiebreaker,
@@ -40,16 +39,15 @@ export function BracketForm({
   series: Series[];
   teams: Team[];
   seeds: PlayoffSeed[];
-  players: Player[];
   initialPicks: Pick[];
-  initialMvp: number | null;
+  initialMvp: string;
   initialTiebreaker: number | null;
   /** False before the entry window opens: the bracket is explorable, but nothing is written. */
   canSave: boolean;
   opensAt: string | null;
 }) {
   const [picks, setPicks] = useState<Pick[]>(initialPicks);
-  const [mvp, setMvp] = useState<number | null>(initialMvp);
+  const [mvp, setMvp] = useState<string>(initialMvp);
   const [tiebreaker, setTiebreaker] = useState<string>(
     initialTiebreaker === null ? "" : String(initialTiebreaker),
   );
@@ -99,7 +97,7 @@ export function BracketForm({
     startSaving(async () => {
       const message = await saveBracket({
         picks,
-        mvpPlayerId: mvp,
+        mvpName: mvp,
         totalRunsGuess: tiebreaker === "" ? null : Number(tiebreaker),
       });
       if (message) setError(message);
@@ -108,7 +106,7 @@ export function BracketForm({
   }
 
   const gaps = bracketGaps(picks, series);
-  const needsMvp = mvp === null;
+  const needsMvp = mvp.trim() === "";
   const needsTiebreaker = tiebreaker.trim() === "";
   const complete = isBracketComplete(picks, series) && !needsMvp && !needsTiebreaker;
 
@@ -269,29 +267,24 @@ export function BracketForm({
           World Series MVP
           {needsMvp && <Flag>Not picked</Flag>}
         </h2>
-        {players.length === 0 ? (
-          <p className="text-sm text-dead">Rosters aren&apos;t loaded yet.</p>
-        ) : (
-          <select
-            value={mvp ?? ""}
-            onChange={(e) => {
-              setSaved(false);
-              setMvp(e.target.value === "" ? null : Number(e.target.value));
-            }}
-            className={
-              needsMvp
-                ? "w-full max-w-md rounded border border-accent bg-surface px-3 py-2 text-sm"
-                : "w-full max-w-md rounded border border-border bg-surface px-3 py-2 text-sm"
-            }
-          >
-            <option value="">—</option>
-            {players.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.full_name} ({teamById.get(p.team_id)?.short_name ?? ""})
-              </option>
-            ))}
-          </select>
-        )}
+        <p className="mb-3 max-w-2xl text-sm text-ink-muted">
+          Any player on any of the twelve playoff teams. Type the name — spelling and
+          punctuation don&apos;t have to be exact, but the name does.
+        </p>
+        <input
+          type="text"
+          value={mvp}
+          onChange={(e) => {
+            setSaved(false);
+            setMvp(e.target.value);
+          }}
+          placeholder="e.g. Aaron Judge"
+          className={
+            needsMvp
+              ? "w-full max-w-md rounded border border-accent bg-surface px-3 py-2 text-sm"
+              : "w-full max-w-md rounded border border-border bg-surface px-3 py-2 text-sm"
+          }
+        />
       </section>
 
       <section>

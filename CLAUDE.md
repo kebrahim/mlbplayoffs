@@ -23,6 +23,11 @@ contest rules in it are the requirements.
   bonus pays only on a number somebody chose. Anything that reads the column
   has to handle null — in SQL that means `coalesce(... = ..., false)`, since
   `null = 3` is null, not false.
+- **The World Series MVP pick is a typed name, not a roster row.** `players`
+  is dead — it was built for a dropdown nothing ever populated. Picks and the
+  recorded winner are both text, compared through `mvp_key()` in SQL, which
+  strips case, spacing and punctuation. Don't reintroduce a `player_id` path
+  without filling `players` first.
 - **Migrations are numbered and applied by hand** in the Supabase SQL editor.
   There is no runner. Never edit an applied migration — add a new one.
 - Types in `src/lib/supabase/types.ts` are **type aliases, not interfaces**.

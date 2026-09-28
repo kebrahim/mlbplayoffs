@@ -18,10 +18,10 @@ export default async function AdminPage() {
     { data: teams },
     { data: seeds },
     { data: scoring },
-    { data: players },
     { data: participants },
     { data: picks },
     { data: mvp },
+    { data: mvpPicks },
     lockAt,
     openAt,
     entryOpen,
@@ -29,10 +29,10 @@ export default async function AdminPage() {
     supabase.from("teams").select("*").order("name"),
     supabase.from("playoff_seeds").select("*"),
     supabase.from("scoring_config").select("*").single(),
-    supabase.from("players").select("*").order("full_name"),
     supabase.from("profiles").select("*").order("display_name"),
     supabase.from("bracket_picks").select("user_id, series_key, predicted_games"),
-    supabase.from("world_series_mvp").select("player_id").maybeSingle(),
+    supabase.from("world_series_mvp").select("player_name").maybeSingle(),
+    supabase.from("mvp_picks").select("user_id, player_name"),
     getLockAt(),
     getOpenAt(),
     picksOpen(),
@@ -120,7 +120,15 @@ export default async function AdminPage() {
       </Section>
 
       <Section title="World Series MVP">
-        <MvpForm players={players ?? []} teams={teams ?? []} current={mvp?.player_id ?? null} />
+        <MvpForm
+          current={mvp?.player_name ?? null}
+          picks={(mvpPicks ?? []).map((pick) => ({
+            display_name:
+              (participants ?? []).find((person) => person.id === pick.user_id)?.display_name ??
+              "someone",
+            player_name: pick.player_name,
+          }))}
+        />
       </Section>
     </div>
   );

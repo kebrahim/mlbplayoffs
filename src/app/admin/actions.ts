@@ -252,13 +252,13 @@ export async function setWorldSeriesMvp(
 ): Promise<string | null> {
   await requireCommissioner();
 
-  const playerId = Number(formData.get("player_id"));
-  if (!playerId) return "Pick a player.";
+  const name = String(formData.get("player_name") ?? "").trim();
+  if (!name) return "Type the player's name.";
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("world_series_mvp")
-    .upsert({ id: true, player_id: playerId });
+    .upsert({ id: true, player_name: name });
   if (error) return error.message;
 
   revalidatePath("/", "layout");

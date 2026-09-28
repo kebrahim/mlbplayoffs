@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Player, PlayoffSeed, ScoringConfig, Team } from "@/lib/supabase/types";
+import type { PlayoffSeed, ScoringConfig, Team } from "@/lib/supabase/types";
 import { setLockTime, setOpenTime, setPlayoffField, setScoring, setWorldSeriesMvp } from "./actions";
 
 const SEEDS = [1, 2, 3, 4, 5, 6];
@@ -167,39 +167,48 @@ export function OpenTimeForm({ value }: { value: string }) {
 }
 
 export function MvpForm({
-  players,
-  teams,
   current,
+  picks,
 }: {
-  players: Player[];
-  teams: Team[];
-  current: number | null;
+  current: string | null;
+  picks: { display_name: string; player_name: string }[];
 }) {
   const [error, formAction, pending] = useActionState(setWorldSeriesMvp, null);
-  const teamName = (id: number) => teams.find((t) => t.id === id)?.short_name ?? "";
-
-  if (players.length === 0) {
-    return (
-      <p className="text-sm text-ink-muted">
-        No rosters loaded yet — set the playoff field first.
-      </p>
-    );
-  }
 
   return (
     <form action={formAction}>
-      <select
-        name="player_id"
-        defaultValue={current ?? ""}
-        className="w-full max-w-md rounded border border-border bg-surface px-2 py-1.5 text-sm"
-      >
-        <option value="">—</option>
-        {players.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.full_name} ({teamName(p.team_id)})
-          </option>
-        ))}
-      </select>
+      <label className="flex items-center gap-3">
+        <input
+          name="player_name"
+          type="text"
+          defaultValue={current ?? ""}
+          placeholder="e.g. Aaron Judge"
+          className="w-full max-w-md rounded border border-border bg-surface px-3 py-2 text-sm"
+        />
+      </label>
+      <p className="mt-4 max-w-2xl text-sm text-ink-muted">
+        Spelling and punctuation are ignored when matching, but the name isn&apos;t. Everyone
+        who wrote this player down gets the bonus; nothing is paid until you fill this in.
+      </p>
+
+      {picks.length > 0 && (
+        <>
+          <p className="font-heading mt-6 mb-2 tracking-wide uppercase">What people picked</p>
+          <ul className="divide-y divide-border rounded border border-border">
+            {picks.map((p) => (
+              <li key={p.display_name} className="flex justify-between px-3 py-2 text-sm">
+                <span className="text-ink-muted">{p.display_name}</span>
+                <span className="font-mono">{p.player_name}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-ink-muted">
+            Five names, read once — if one is a nickname or a misspelling you can see it here
+            before you record the winner.
+          </p>
+        </>
+      )}
+
       <SaveRow error={error} pending={pending} label="Record the MVP" />
     </form>
   );

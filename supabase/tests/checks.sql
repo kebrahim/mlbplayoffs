@@ -229,6 +229,58 @@ end $$;
 update scoring_config set ds_points = 2;
 
 -- ------------------------------------------------------------
+-- the World Series MVP: a written-in name
+-- ------------------------------------------------------------
+do $$ begin
+  perform assert_eq(mvp_key('J.T. Realmuto'), 'jtrealmuto', 'punctuation and case fall out of the key');
+  perform assert_eq(mvp_key('  JT   realmuto '), 'jtrealmuto', 'so does spacing');
+  perform assert_eq(mvp_key(null), '', 'a missing name keys to empty');
+end $$;
+
+-- Alice spells it plainly, Bob puts a period in it; both mean the same
+-- player. Nobody scores until the commissioner records a winner.
+insert into mvp_picks (user_id, player_name) values
+  ('11111111-1111-1111-1111-111111111111', 'Aaron Judge'),
+  ('22222222-2222-2222-2222-222222222222', 'aaron  judge.');
+
+do $$ begin
+  perform assert_eq((select mvp_points from overall_leaderboard where display_name = 'Alice'),
+                    0.0::numeric, 'no MVP bonus before the winner is recorded');
+end $$;
+
+insert into world_series_mvp (id, player_name) values (true, 'Aaron Judge');
+
+do $$ begin
+  perform assert_eq((select mvp_points from overall_leaderboard where display_name = 'Alice'),
+                    3.0::numeric, 'the MVP bonus pays on an exact name');
+  perform assert_eq((select mvp_points from overall_leaderboard where display_name = 'Bob'),
+                    3.0::numeric, 'and on a differently punctuated one');
+end $$;
+
+update world_series_mvp set player_name = 'Shohei Ohtani' where id;
+do $$ begin
+  perform assert_eq((select mvp_points from overall_leaderboard where display_name = 'Alice'),
+                    0.0::numeric, 'a different player pays nobody');
+end $$;
+
+-- A blank pick is not a pick, whatever it looks like.
+do $$
+declare
+  blocked boolean := false;
+begin
+  begin
+    insert into mvp_picks (user_id, player_name)
+    values ('11111111-1111-1111-1111-111111111111', '   ');
+  exception when others then
+    blocked := true;
+  end;
+  perform assert_eq(blocked, true, 'a blank MVP name is rejected');
+end $$;
+
+delete from mvp_picks;
+delete from world_series_mvp;
+
+-- ------------------------------------------------------------
 -- the lock, and pick privacy
 -- ------------------------------------------------------------
 grant select, insert, update, delete on all tables in schema public to authenticated;

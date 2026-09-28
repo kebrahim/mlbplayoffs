@@ -58,7 +58,13 @@ right. Calling "Yankees in 5" and watching the Yankees win in 6 scores the
 winner points and no bonus.
 
 **World Series MVP** is worth **+3**. You pick any player on any of the twelve
-playoff teams; the commissioner records the actual winner when it's announced.
+playoff teams, by **typing the name** — there is no roster dropdown, because
+there is no roster feed worth depending on for one pick a year. The
+commissioner records the actual winner the same way when it's announced, and
+the two are compared on a normalised key (`mvp_key()`: case, spacing and
+punctuation removed), so "J.T. Realmuto" and "JT Realmuto" are the same answer.
+The commissioner can see everyone's write-ins on `/admin` before recording the
+winner, which is the backstop for a nickname or a misspelling.
 
 **Tiebreaker: total runs.** Every player guesses the total runs scored by both
 teams across every game of the entire postseason. It is only consulted if two
@@ -165,14 +171,14 @@ form.
 |---|---|
 | `profiles` | One row per player: display name, email, commissioner flag |
 | `teams` | All 30 MLB teams — name, code, league, division |
-| `players` | Rosters of the twelve playoff teams, synced once the field is set; the MVP pick points at one of these |
+| `players` | Unused. It was meant to hold rosters for an MVP dropdown; nothing ever filled it, and the MVP pick is a typed name instead |
 | `playoff_seeds` | The field: `(league, seed 1–6) → team_id` |
 | `series` | The 11 bracket slots, seeded once and never changed — round, league, best-of, and which slots feed into them |
 | `games` | Synced from ESPN, keyed by ESPN's event id, each attached to a series |
 | `bracket_picks` | One row per player per series: predicted winner, and predicted number of games once chosen (nullable — it is not defaulted) |
-| `mvp_picks` | One row per player: predicted World Series MVP |
+| `mvp_picks` | One row per player: the World Series MVP they typed in |
 | `tiebreaker_predictions` | One row per player: total playoff runs guess |
-| `world_series_mvp` | Single row, commissioner-set: the actual MVP |
+| `world_series_mvp` | Single row, commissioner-set: the actual MVP's name |
 | `scoring_config` | Single row: the four round values, the length bonus, the MVP bonus |
 | `app_settings` | Key/value — `picks_open_at`, `picks_lock_at`, `last_synced_at` |
 
@@ -285,13 +291,13 @@ scores, who's ahead, and how each player's pick is doing.
   ends. Seeding is not something the scoreboard feed reports (it follows from
   the standings and MLB's tiebreakers), so this is entered rather than pulled;
   it is twelve dropdowns once a year. Saving the field also fills in the four
-  Wild Card matchups, which is what makes brackets fillable, and syncs the
-  twelve teams' rosters into `players`.
+  Wild Card matchups, which is what makes brackets fillable.
 - **Scoring** — the four round values, the length bonus, the MVP bonus.
 - **Entry opens** — when saving becomes possible. Blank means straight away.
 - **Lock time** — the entry deadline.
 - **Scores** — last sync time and a manual sync button.
-- **World Series MVP** — record the actual winner.
+- **World Series MVP** — record the actual winner, and read everyone's
+  write-ins next to it.
 
 ---
 
@@ -309,7 +315,7 @@ src/
     admin/                    Commissioner tools (collapsible sections)
     api/
       sync/games/             ESPN sync — cron, admin button, stale-read
-      admin/field/            Pull or set the playoff field and rosters
+      admin/field/            Set the playoff field
   lib/
     supabase/                 Browser / server / service-role clients
     domain/                   Bracket tree, scoring math, ESPN mapping, sync status

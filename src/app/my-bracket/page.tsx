@@ -15,7 +15,6 @@ export default async function MyBracketPage() {
     { data: series },
     { data: teams },
     { data: seeds },
-    { data: players },
     { data: picks },
     { data: mvp },
     { data: tiebreaker },
@@ -27,12 +26,11 @@ export default async function MyBracketPage() {
     supabase.from("series").select("*").order("sort_order"),
     supabase.from("teams").select("*").order("name"),
     supabase.from("playoff_seeds").select("*"),
-    supabase.from("players").select("*").order("full_name"),
     supabase
       .from("bracket_picks")
       .select("series_key, predicted_team_id, predicted_games")
       .eq("user_id", profile.id),
-    supabase.from("mvp_picks").select("player_id").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("mvp_picks").select("player_name").eq("user_id", profile.id).maybeSingle(),
     supabase
       .from("tiebreaker_predictions")
       .select("total_runs_guess")
@@ -80,9 +78,8 @@ export default async function MyBracketPage() {
         <BracketReadOnly
           series={series ?? []}
           teams={teams ?? []}
-          players={players ?? []}
           picks={picks ?? []}
-          mvpPlayerId={mvp?.player_id ?? null}
+          mvpName={mvp?.player_name ?? null}
           tiebreaker={tiebreaker?.total_runs_guess ?? null}
         />
       </div>
@@ -103,9 +100,8 @@ export default async function MyBracketPage() {
         series={series ?? []}
         teams={teams ?? []}
         seeds={seeds ?? []}
-        players={players ?? []}
         initialPicks={picks ?? []}
-        initialMvp={mvp?.player_id ?? null}
+        initialMvp={mvp?.player_name ?? ""}
         initialTiebreaker={tiebreaker?.total_runs_guess ?? null}
         canSave={editable}
         opensAt={openAt ? when(openAt) : null}

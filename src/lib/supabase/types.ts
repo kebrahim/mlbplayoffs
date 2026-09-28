@@ -93,7 +93,10 @@ export type BracketPick = {
 
 export type MvpPick = {
   user_id: string;
-  player_id: number;
+  // The name as the player typed it. `player_id` is a leftover from when
+  // the pick came from a roster dropdown; nothing writes it.
+  player_name: string;
+  player_id: number | null;
   updated_at: string;
 }
 
@@ -196,7 +199,7 @@ export type Database = {
       };
       mvp_picks: {
         Row: MvpPick;
-        Insert: Omit<MvpPick, "updated_at">;
+        Insert: { user_id: string; player_name: string };
         Update: Partial<MvpPick>;
         Relationships: [];
       };
@@ -213,9 +216,9 @@ export type Database = {
         Relationships: [];
       };
       world_series_mvp: {
-        Row: { id: boolean; player_id: number; set_at: string };
-        Insert: { id?: boolean; player_id: number };
-        Update: { player_id: number };
+        Row: { id: boolean; player_name: string; player_id: number | null; set_at: string };
+        Insert: { id?: boolean; player_name: string };
+        Update: { player_name: string };
         Relationships: [];
       };
     };

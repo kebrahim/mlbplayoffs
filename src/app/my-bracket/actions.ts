@@ -9,7 +9,7 @@ import type { League, Series } from "@/lib/supabase/types";
 
 export interface BracketSubmission {
   picks: { series_key: string; predicted_team_id: number; predicted_games: number | null }[];
-  mvpPlayerId: number | null;
+  mvpName: string;
   totalRunsGuess: number | null;
 }
 
@@ -76,10 +76,11 @@ export async function saveBracket(submission: BracketSubmission): Promise<string
     if (error) return error.message;
   }
 
-  if (submission.mvpPlayerId !== null) {
+  const mvpName = submission.mvpName.trim();
+  if (mvpName !== "") {
     const { error } = await supabase
       .from("mvp_picks")
-      .upsert({ user_id: profile.id, player_id: submission.mvpPlayerId });
+      .upsert({ user_id: profile.id, player_name: mvpName });
     if (error) return error.message;
   } else {
     await supabase.from("mvp_picks").delete().eq("user_id", profile.id);
