@@ -104,7 +104,8 @@ A pick can now sit with no length, the entry form marks every one that does, and
 the length bonus only pays on a number a player actually chose.
 
 **Picks are private until the lock.** Before it, you can see your own bracket
-and nobody else's; the leaderboard shows only who has entered. After it, every
+and nobody else's; the leaderboard shows only who has entered — except to the
+commissioner, who sees every bracket throughout. After it, every
 bracket is visible to everyone. The commissioner can see all picks at all times,
 so they can chase down whoever hasn't entered.
 
@@ -275,8 +276,14 @@ form is explorable but saves nothing, and says so. After the lock it becomes a
 read-only view of your bracket with each pick marked hit, missed or still
 alive.
 
-**`/leaderboard`** — Standings. Before the lock it shows only who has entered;
-after it, the full table plus everyone's bracket.
+**`/leaderboard`** — Standings. Before the lock a player sees only who has
+entered; after it, the full table plus every bracket side by side — series down,
+people across, with each person's completed count, MVP write-in and runs guess.
+The commissioner sees that grid from the start, which is the only practical way
+to chase whoever hasn't finished. That is the UI half of the privacy rule; the
+database half is the `is_commissioner()` branch in the select policies, so the
+page shows exactly what the policies already allow rather than deciding for
+itself.
 
 **`/series`** — All 11 series with their current state: participants, game
 scores, who's ahead, and how each player's pick is doing.
@@ -309,7 +316,7 @@ src/
     page.tsx                  Home — rules, lock countdown, postseason status
     login/                    Sign in / sign up
     my-bracket/               Bracket entry, MVP pick, tiebreaker
-    leaderboard/              Standings + everyone's brackets (post-lock)
+    leaderboard/              Standings + every bracket (commissioner always, everyone post-lock)
     series/                   The 11 series and their games
     profile/                  Display name, email
     admin/                    Commissioner tools (collapsible sections)

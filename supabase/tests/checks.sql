@@ -357,6 +357,31 @@ do $$ begin
 end $$;
 reset role;
 
+-- The commissioner sees everyone's, all along — which is what the
+-- leaderboard leans on to show every bracket before the deadline.
+insert into mvp_picks (user_id, player_name)
+values ('11111111-1111-1111-1111-111111111111', 'Aaron Judge');
+
+update profiles set is_commissioner = true
+where id = '22222222-2222-2222-2222-222222222222';
+
+set role authenticated;
+set test.user_id = '22222222-2222-2222-2222-222222222222';
+do $$ begin
+  perform assert_eq((select count(*)::int from bracket_picks), 4,
+                    'the commissioner sees every bracket before the lock');
+  perform assert_eq((select count(*)::int from tiebreaker_predictions), 2,
+                    'and every tiebreaker');
+  perform assert_eq((select player_name from mvp_picks
+                     where user_id = '11111111-1111-1111-1111-111111111111'),
+                    'Aaron Judge', 'and somebody else''s MVP write-in');
+end $$;
+reset role;
+
+update profiles set is_commissioner = false
+where id = '22222222-2222-2222-2222-222222222222';
+delete from mvp_picks;
+
 -- After the lock: everything is public, and nothing can be changed.
 update app_settings set value = '2020-01-01T00:00:00Z' where key = 'picks_lock_at';
 do $$ begin
