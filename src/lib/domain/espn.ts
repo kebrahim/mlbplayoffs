@@ -1,3 +1,5 @@
+import { utcToEasternWallClock } from "./time";
+
 // ESPN's MLB endpoints use their own team abbreviations, which mostly match
 // the codes in `teams` but not always.
 //
@@ -59,25 +61,41 @@ export function mapStatus(espnStatusName: string | undefined): "scheduled" | "li
 }
 
 /**
- * The months a date range touches, as ESPN's `dates=YYYYMM` parameter.
+ * Every Eastern calendar day from `start` to `end` inclusive, as ESPN's
+ * `dates=YYYYMMDD` parameter.
  *
- * ESPN stopped accepting `dates=YYYYMMDD-YYYYMMDD` ranges in September
- * 2026 — a single day, month or year still works — so the sync asks for
- * one month at a time. The postseason spans two.
+ * One request per day, not per month. A month is what the NFL contest this
+ * was modelled on asks for, and it works there because a month of NFL is
+ * about seventy games. A September of MLB is nearly four hundred, with the
+ * Wild Card round in its last three days — and when the first Wild Card
+ * round finished, the sync had stored none of it. An unofficial endpoint
+ * capping a response that size is the likeliest reason, though it couldn't
+ * be confirmed from where this was written. A day is never more than
+ * sixteen games, so the question doesn't arise.
+ *
+ * Days are counted in Eastern time because that is how ESPN dates a game:
+ * a 10pm first pitch on the 29th is the 29th's game, though it is the 30th
+ * in UTC.
  */
-export function monthsInRange(start: Date, end: Date): string[] {
-  const months: string[] = [];
-  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-  const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
-  while (cursor <= last) {
-    months.push(`${cursor.getUTCFullYear()}${String(cursor.getUTCMonth() + 1).padStart(2, "0")}`);
-    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+export function easternDaysInRange(start: Date, end: Date): string[] {
+  const days: string[] = [];
+  const ymd = (at: Date) => utcToEasternWallClock(at).slice(0, 10);
+  const [sy, sm, sd] = ymd(start).split("-").map(Number);
+  const last = ymd(end);
+
+  // Calendar arithmetic on the date alone, so DST can't skip or repeat one.
+  const cursor = new Date(Date.UTC(sy, sm - 1, sd));
+  for (let guard = 0; guard < 400; guard++) {
+    const iso = cursor.toISOString().slice(0, 10);
+    days.push(iso.replace(/-/g, ""));
+    if (iso >= last) break;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
-  return months;
+  return days;
 }
 
-export async function fetchScoreboardMonth(month: string): Promise<EspnEvent[]> {
-  const url = `${ESPN_MLB_SCOREBOARD}?dates=${month}`;
+export async function fetchScoreboardDay(day: string): Promise<EspnEvent[]> {
+  const url = `${ESPN_MLB_SCOREBOARD}?dates=${day}`;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < ESPN_USER_AGENTS.length; attempt++) {
@@ -96,11 +114,11 @@ export async function fetchScoreboardMonth(month: string): Promise<EspnEvent[]> 
 
     const body = await res.text().catch(() => "");
     lastError = new Error(
-      `ESPN scoreboard ${month} failed: ${res.status} (UA: ${userAgent || "none"}) ${body.slice(0, 200)}`,
+      `ESPN scoreboard ${day} failed: ${res.status} (UA: ${userAgent || "none"}) ${body.slice(0, 200)}`,
     );
     // Only a bot-detection style rejection is worth another UA.
     if (res.status !== 403 && res.status !== 429) break;
   }
 
-  throw lastError ?? new Error(`ESPN scoreboard ${month} failed.`);
+  throw lastError ?? new Error(`ESPN scoreboard ${day} failed.`);
 }

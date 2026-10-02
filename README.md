@@ -226,9 +226,11 @@ every-15-minutes cron and `syncIfStale()` could go.)
 
 Each run:
 
-1. Fetches ESPN's MLB scoreboard a calendar month at a time (`202609`,
-   `202610`). ESPN stopped accepting `dates=` ranges in September 2026 — single
-   day, month or year still work.
+1. Fetches ESPN's MLB scoreboard one Eastern day at a time (`20260929`), from
+   the day picks lock to three days ahead, six requests at once. ESPN stopped
+   accepting `dates=` ranges in September 2026. A month at a time is what the
+   NFL contest does, but a month of MLB is hundreds of games and the first
+   Wild Card round never made it into the response; a day is at most sixteen.
 2. **Advances the bracket** — fills each series' two participants from
    `playoff_seeds` and from the winners of the series feeding it. This runs
    before games are attached, so a new round's slots exist by the time its games
@@ -240,7 +242,10 @@ Each run:
    skipped and picked up on the next run.
 4. Upserts each game by ESPN's event id, numbering games within a series by
    start time.
-5. Records `last_synced_at`.
+5. Records `last_synced_at`, and the outcome in `last_sync_result`: what was
+   stored, how many postseason games ESPN listed, how many matched no series,
+   or the error. /admin shows it under Scores, since a sync started by a page
+   load has nobody watching it fail.
 
 Scores, series winners, series lengths and the leaderboard are all derived in
 SQL from `games`, so re-running a sync is always safe and never double-counts.

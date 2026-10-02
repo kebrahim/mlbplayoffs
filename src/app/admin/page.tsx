@@ -7,6 +7,8 @@ import { Section } from "./section";
 import { LockTimeForm, MvpForm, OpenTimeForm, PlayoffFieldForm, ScoringForm } from "./forms";
 import { SyncButton } from "./sync-button";
 import { LastSynced } from "@/app/last-synced";
+import { getLastSyncOutcome } from "@/lib/domain/sync-status";
+import { describeSync } from "@/lib/domain/sync-message";
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile();
@@ -25,6 +27,7 @@ export default async function AdminPage() {
     lockAt,
     openAt,
     entryOpen,
+    lastSync,
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
     supabase.from("playoff_seeds").select("*"),
@@ -36,6 +39,7 @@ export default async function AdminPage() {
     getLockAt(),
     getOpenAt(),
     picksOpen(),
+    getLastSyncOutcome(),
   ]);
 
   // Counted as "done" only with a length as well as a winner, so a bracket
@@ -115,6 +119,19 @@ export default async function AdminPage() {
       >
         <div className="space-y-3">
           <LastSynced />
+          {lastSync && (
+            <p className={lastSync.ok ? "text-sm text-ink-muted" : "text-sm text-accent"}>
+              Last sync,{" "}
+              {new Date(lastSync.at).toLocaleString("en-US", {
+                timeZone: "America/New_York",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+              : {lastSync.ok ? describeSync(lastSync.result) : `failed. ${lastSync.error}`}
+            </p>
+          )}
           <SyncButton />
         </div>
       </Section>

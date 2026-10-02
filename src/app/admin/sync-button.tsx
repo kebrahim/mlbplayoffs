@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { describeSync } from "@/lib/domain/sync-message";
 
 export function SyncButton() {
   const router = useRouter();
@@ -16,13 +17,7 @@ export function SyncButton() {
         setState(body.error ?? "The sync failed.");
         return;
       }
-      setState(
-        body.reason ??
-          `Stored ${body.synced} games${body.advanced?.length ? `, advanced ${body.advanced.join(", ")}` : ""}.` +
-            (body.unknownCodes?.length
-              ? ` Unrecognised team codes: ${body.unknownCodes.join(", ")} — fix those teams' codes below.`
-              : ""),
-      );
+      setState(describeSync(body));
       router.refresh();
     } catch (error) {
       setState(error instanceof Error ? error.message : "The sync failed.");

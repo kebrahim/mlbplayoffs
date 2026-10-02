@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SyncOutcome } from "@/app/api/sync/games/route";
 
 const STALE_AFTER_MS = 10 * 60 * 1000;
 
@@ -35,5 +36,21 @@ export async function syncIfStale(): Promise<void> {
     await performSync();
   } catch {
     // An ESPN hiccup isn't a reason to fail the page the visitor asked for.
+  }
+}
+
+/** How the most recent sync went — written by performSync(), shown on /admin. */
+export async function getLastSyncOutcome(): Promise<SyncOutcome | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "last_sync_result")
+    .maybeSingle();
+  if (!data?.value) return null;
+  try {
+    return JSON.parse(data.value) as SyncOutcome;
+  } catch {
+    return null;
   }
 }
