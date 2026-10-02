@@ -5,8 +5,9 @@
  * stitch red as the single accent. Committed dark theme — no light
  * variant, since the look is the point.
  *
- * Red is reserved for "look here", so a wrong or eliminated pick greys out
- * with --color-dead rather than turning red.
+ * Red is mostly reserved for "look here". The exception is the grid of
+ * everyone's brackets on /leaderboard, where right and wrong picks need to
+ * read at a glance, so they are green and red.
  */
 @theme {
   --color-bg: #0a0f16;

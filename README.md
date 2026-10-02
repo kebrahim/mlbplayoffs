@@ -109,6 +109,13 @@ commissioner, who sees every bracket throughout. After it, every
 bracket is visible to everyone. The commissioner can see all picks at all times,
 so they can chase down whoever hasn't entered.
 
+On the leaderboard's grid of everyone's brackets, a pick turns green once its
+series goes the way it said and red once it can't: its series went the other
+way, or the team it backed is already out. A right winner with the wrong
+length keeps its green but has the game count struck through, since only the
+length bonus was missed. A recorded World Series MVP colours the MVP row the
+same way.
+
 Both timestamps are settings, not constants — the commissioner can move either
 from `/admin` if a game gets postponed, and the database enforces them (see
 **Auth & authorization**).

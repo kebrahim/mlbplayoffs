@@ -25,6 +25,9 @@ export default async function LeaderboardPage() {
     { data: teams },
     { data: mvpPicks },
     { data: tiebreakers },
+    { data: scores },
+    { data: results },
+    { data: mvpWinner },
   ] = await Promise.all([
     picksLocked(),
     supabase.from("overall_leaderboard").select("*"),
@@ -37,6 +40,9 @@ export default async function LeaderboardPage() {
     supabase.from("teams").select("*"),
     supabase.from("mvp_picks").select("user_id, player_name"),
     supabase.from("tiebreaker_predictions").select("user_id, total_runs_guess"),
+    supabase.from("bracket_pick_scores").select("*"),
+    supabase.from("series_results").select("*"),
+    supabase.from("world_series_mvp").select("player_name").maybeSingle(),
   ]);
 
   // Before the lock these three queries come back holding only this
@@ -50,6 +56,9 @@ export default async function LeaderboardPage() {
       picks={picks ?? []}
       mvpPicks={mvpPicks ?? []}
       tiebreakers={tiebreakers ?? []}
+      scores={scores ?? []}
+      results={results ?? []}
+      mvpWinner={mvpWinner?.player_name ?? null}
     />
   );
 

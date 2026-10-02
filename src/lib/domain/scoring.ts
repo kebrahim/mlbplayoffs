@@ -94,3 +94,12 @@ export function maxPossibleScore(allSeries: Series[], config: ScoringConfig): nu
 export function stillPossibleGameCounts(bestOf: number, gamesPlayedSoFar: number): number[] {
   return possibleGameCounts(bestOf).filter((n) => n >= gamesPlayedSoFar);
 }
+
+/**
+ * Mirrors mvp_key() in SQL: the MVP is a typed name, so "Shohei Ohtani",
+ * "shohei ohtani" and "Shohei  Ohtani." all have to count as the same
+ * answer. Lowercase, then drop everything but letters and digits.
+ */
+export function mvpKey(name: string | null | undefined): string {
+  return (name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}

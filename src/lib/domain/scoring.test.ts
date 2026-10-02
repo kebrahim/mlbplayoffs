@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ScoringConfig, Series } from "@/lib/supabase/types";
-import { DEFAULT_SCORING, maxPossibleScore, roundPoints, scorePick, stillPossibleGameCounts } from "./scoring";
+import { DEFAULT_SCORING, maxPossibleScore, mvpKey, roundPoints, scorePick, stillPossibleGameCounts } from "./scoring";
 
 const CONFIG: ScoringConfig = { id: true, updated_at: "", ...DEFAULT_SCORING };
 
@@ -77,4 +77,11 @@ test("a length pick dies once the series outruns it", () => {
   assert.deepEqual(stillPossibleGameCounts(7, 0), [4, 5, 6, 7]);
   assert.deepEqual(stillPossibleGameCounts(7, 5), [5, 6, 7]);
   assert.deepEqual(stillPossibleGameCounts(3, 3), [3]);
+});
+
+test("mvpKey ignores case, spacing and punctuation, like mvp_key() in SQL", () => {
+  assert.equal(mvpKey("Shohei Ohtani"), mvpKey("  shohei   OHTANI. "));
+  assert.equal(mvpKey("Ronald Acuña Jr."), mvpKey("ronald acuña jr"));
+  assert.notEqual(mvpKey("Will Smith"), mvpKey("Will Smyth"));
+  assert.equal(mvpKey(null), "");
 });
