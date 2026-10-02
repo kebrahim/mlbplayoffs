@@ -108,7 +108,9 @@ export function EveryonesPicks({
                   <span className="text-ink">{person.display_name}</span>{" "}
                   <span
                     className={
-                      done === series.length ? "font-mono text-xs text-good" : "font-mono text-xs text-accent"
+                      done === series.length
+                        ? "font-mono text-xs text-good"
+                        : "font-mono text-xs text-accent"
                     }
                   >
                     {done}/{series.length}
@@ -130,15 +132,6 @@ export function EveryonesPicks({
                   <td key={person.id} className="py-1 pr-2 font-mono whitespace-nowrap">
                     <span
                       className={`inline-block rounded px-2 py-1 ${verdict ? cellTone[verdict] : ""}`}
-                      title={
-                        verdict === "right"
-                          ? `Right, +${score?.points ?? 0}${score?.length_correct ? " with the length bonus" : ""}`
-                          : verdict === "wrong"
-                            ? "Wrong"
-                            : verdict === "out"
-                              ? "Already eliminated"
-                              : undefined
-                      }
                     >
                       {!pick ? (
                         missing
@@ -150,9 +143,16 @@ export function EveryonesPicks({
                           ) : verdict === "right" && !score?.length_correct ? (
                             // Right team, wrong length: the winner scored but
                             // the bonus didn't, so only the length is struck.
-                            <span className="text-ink-muted line-through">in {pick.predicted_games}</span>
+                            <span className="text-ink-muted line-through">
+                              in {pick.predicted_games}
+                            </span>
                           ) : (
                             <>in {pick.predicted_games}</>
+                          )}
+                          {/* Written out rather than left to a hover tooltip,
+                              which phones never show and desktops show late. */}
+                          {verdict === "right" && score && (
+                            <span className="ml-1.5 text-xs text-good">+{score.points}</span>
                           )}
                         </>
                       )}
@@ -175,7 +175,9 @@ export function EveryonesPicks({
                     : cellTone.wrong;
               return (
                 <td key={person.id} className="py-1 pr-2 font-mono whitespace-nowrap">
-                  <span className={`inline-block rounded px-2 py-1 ${tone}`}>{pick ?? missing}</span>
+                  <span className={`inline-block rounded px-2 py-1 ${tone}`}>
+                    {pick ?? missing}
+                  </span>
                 </td>
               );
             })}
@@ -183,7 +185,10 @@ export function EveryonesPicks({
           <tr>
             <td className="py-2 pr-6 whitespace-nowrap text-ink-muted">Total runs</td>
             {people.map((person) => (
-              <td key={person.id} className="py-2 pr-2 pl-2 font-mono whitespace-nowrap tabular-nums">
+              <td
+                key={person.id}
+                className="py-2 pr-2 pl-2 font-mono whitespace-nowrap tabular-nums"
+              >
                 {runsFor(person.id) ?? missing}
               </td>
             ))}

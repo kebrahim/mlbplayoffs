@@ -68,8 +68,8 @@ export default async function LeaderboardPage() {
       <div className="max-w-xl">
         <h1 className="font-heading text-3xl tracking-wide uppercase">Leaderboard</h1>
         <p className="mt-3 mb-8 text-sm text-ink-muted">
-          Brackets stay private until the deadline, so there&apos;s nothing to rank yet — just
-          who has started.
+          Brackets stay private until the deadline, so there&apos;s nothing to rank yet — just who
+          has started.
         </p>
         <ul className="divide-y divide-border rounded border border-border bg-surface">
           {(participants ?? []).map((person) => (
@@ -90,8 +90,8 @@ export default async function LeaderboardPage() {
       <div>
         <h1 className="font-heading text-3xl tracking-wide uppercase">Leaderboard</h1>
         <p className="mt-3 mb-8 max-w-2xl text-sm text-ink-muted">
-          Nothing to rank until the deadline. Everyone&apos;s brackets are below because
-          you&apos;re the commissioner — nobody else can see this until the lock.
+          Nothing to rank until the deadline. Everyone&apos;s brackets are below because you&apos;re
+          the commissioner — nobody else can see this until the lock.
         </p>
         {everyonesPicks}
       </div>
@@ -99,6 +99,19 @@ export default async function LeaderboardPage() {
   }
 
   const rows = standings ?? [];
+
+  // Series points split by round, summed from the same per-pick view the
+  // standings total comes from, so the columns always add up to it.
+  const ROUNDS = [
+    { round: "WC", label: "WC" },
+    { round: "DS", label: "LDS" },
+    { round: "CS", label: "LCS" },
+    { round: "WS", label: "WS" },
+  ] as const;
+  const roundPoints = (userId: string, round: string) =>
+    (scores ?? [])
+      .filter((p) => p.user_id === userId && p.round === round)
+      .reduce((sum, p) => sum + Number(p.points), 0);
   const leader = rows[0]?.total_points ?? 0;
   const tiedAtTop = rows.filter((r) => r.total_points === leader).length > 1;
 
@@ -109,33 +122,52 @@ export default async function LeaderboardPage() {
         <LastSynced />
       </div>
 
-      <table className="mt-8 w-full text-sm">
-        <thead className="border-b border-border text-left text-ink-muted">
-          <tr>
-            <th className="py-2 font-normal">Player</th>
-            <th className="py-2 text-right font-normal">Series</th>
-            <th className="py-2 text-right font-normal">MVP</th>
-            <th className="py-2 text-right font-normal">Total</th>
-            <th className="py-2 text-right font-normal">Runs guess</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {rows.map((row) => (
-            <tr key={row.user_id}>
-              <td className="py-2.5">{row.display_name}</td>
-              <td className="py-2.5 text-right font-mono tabular-nums">{row.series_points}</td>
-              <td className="py-2.5 text-right font-mono tabular-nums">{row.mvp_points}</td>
-              <td className="py-2.5 text-right font-mono tabular-nums">{row.total_points}</td>
-              <td className="py-2.5 text-right font-mono tabular-nums text-ink-muted">
-                {row.total_runs_guess ?? "—"}
-              </td>
+      <div className="-mx-6 mt-8 overflow-x-auto px-6">
+        <table className="w-full min-w-max text-sm">
+          <thead className="border-b border-border text-left text-ink-muted">
+            <tr>
+              <th className="py-2 font-normal">Player</th>
+              {ROUNDS.map((r) => (
+                <th key={r.round} className="py-2 pl-3 text-right font-normal">
+                  {r.label}
+                </th>
+              ))}
+              <th className="py-2 pl-3 text-right font-normal">MVP</th>
+              <th className="py-2 pl-3 text-right font-normal">Total</th>
+              <th className="py-2 pl-3 text-right font-normal whitespace-nowrap">Runs guess</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((row) => (
+              <tr key={row.user_id}>
+                <td className="py-2.5">{row.display_name}</td>
+                {ROUNDS.map((r) => (
+                  <td
+                    key={r.round}
+                    className="py-2.5 pl-3 text-right font-mono tabular-nums text-ink-muted"
+                  >
+                    {roundPoints(row.user_id, r.round)}
+                  </td>
+                ))}
+                <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-ink-muted">
+                  {row.mvp_points}
+                </td>
+                <td className="py-2.5 pl-3 text-right font-mono font-semibold tabular-nums">
+                  {row.total_points}
+                </td>
+                <td className="py-2.5 pl-3 text-right font-mono tabular-nums text-ink-muted">
+                  {row.total_runs_guess ?? "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <p className="mt-4 text-sm text-ink-muted">
-        {runs ? `${runs.total_runs} runs scored across ${runs.games_final} postseason games.` : null}{" "}
+        {runs
+          ? `${runs.total_runs} runs scored across ${runs.games_final} postseason games.`
+          : null}{" "}
         {tiedAtTop
           ? "The top is tied, so the closest runs guess wins it."
           : "The runs guess only matters if the top ends up tied."}
