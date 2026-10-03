@@ -59,6 +59,11 @@ export default async function LeaderboardPage() {
       scores={scores ?? []}
       results={results ?? []}
       mvpWinner={mvpWinner?.player_name ?? null}
+      totals={
+        locked
+          ? new Map((standings ?? []).map((row) => [row.user_id, Number(row.total_points)]))
+          : undefined
+      }
     />
   );
 

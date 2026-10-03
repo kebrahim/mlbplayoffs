@@ -41,6 +41,7 @@ export function EveryonesPicks({
   scores,
   results,
   mvpWinner,
+  totals,
 }: {
   series: Series[];
   teams: Team[];
@@ -51,6 +52,9 @@ export function EveryonesPicks({
   scores: BracketPickScore[];
   results: SeriesResult[];
   mvpWinner: string | null;
+  /** Each person's total points, once the lock has passed; before it, the
+   *  header shows how much of the bracket they've filled in instead. */
+  totals?: Map<string, number>;
 }) {
   const teamName = (id: number) => teams.find((t) => t.id === id)?.short_name ?? String(id);
   const pickFor = (userId: string, key: string) =>
@@ -103,18 +107,27 @@ export function EveryonesPicks({
             <th className="py-2 pr-6 font-normal">Series</th>
             {people.map((person) => {
               const done = doneCount(person.id);
+              const total = totals?.get(person.id) ?? 0;
               return (
                 <th key={person.id} className="py-2 pr-2 pl-2 font-normal whitespace-nowrap">
                   <span className="text-ink">{person.display_name}</span>{" "}
-                  <span
-                    className={
-                      done === series.length
-                        ? "font-mono text-xs text-good"
-                        : "font-mono text-xs text-accent"
-                    }
-                  >
-                    {done}/{series.length}
-                  </span>
+                  {totals ? (
+                    // Once brackets are being scored, what a column owes
+                    // the reader is how it's doing, not whether it's full.
+                    <span className="font-mono text-xs text-good">
+                      {total} {total === 1 ? "pt" : "pts"}
+                    </span>
+                  ) : (
+                    <span
+                      className={
+                        done === series.length
+                          ? "font-mono text-xs text-good"
+                          : "font-mono text-xs text-accent"
+                      }
+                    >
+                      {done}/{series.length}
+                    </span>
+                  )}
                 </th>
               );
             })}
