@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return run();
+  return run({ force: false });
 }
 
 export async function POST() {
@@ -55,12 +55,14 @@ export async function POST() {
     return NextResponse.json({ error: "Commissioner only" }, { status: 403 });
   }
 
-  return run();
+  // The button always syncs, season over or not: it's how the commissioner
+  // picks up a score ESPN corrected after the fact.
+  return run({ force: true });
 }
 
-async function run() {
+async function run(options: { force: boolean }) {
   try {
-    return NextResponse.json(await performSync());
+    return NextResponse.json(await performSync(options));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 502 });
@@ -83,8 +85,18 @@ export type SyncResult = {
  * has nobody watching it — before this, a failure there left no trace but
  * an old "scores as of".
  */
-export async function performSync(): Promise<SyncResult> {
+export async function performSync({ force = false } = {}): Promise<SyncResult> {
   const db = createServiceRoleClient();
+
+  // Once the World Series has a winner there is nothing left to fetch, so
+  // the crons and page loads stop calling ESPN without anyone having to
+  // switch them off. Nothing is recorded either, so "scores as of" keeps
+  // showing the last sync that actually ran. Next October, a new bracket
+  // starts with no World Series winner and syncing resumes by itself.
+  if (!force && (await seasonIsOver(db))) {
+    return { synced: 0, attached: 0, reason: "The World Series is over, so scores no longer sync." };
+  }
+
   try {
     const result = await syncInto(db);
     await recordOutcome(db, { at: new Date().toISOString(), ok: true, result });
@@ -94,6 +106,15 @@ export async function performSync(): Promise<SyncResult> {
     await recordOutcome(db, { at: new Date().toISOString(), ok: false, error: message });
     throw error;
   }
+}
+
+async function seasonIsOver(db: ReturnType<typeof createServiceRoleClient>): Promise<boolean> {
+  const { data } = await db
+    .from("series_results")
+    .select("winner_team_id")
+    .eq("series_key", "WS")
+    .maybeSingle();
+  return data?.winner_team_id != null;
 }
 
 async function syncInto(db: ReturnType<typeof createServiceRoleClient>): Promise<SyncResult> {

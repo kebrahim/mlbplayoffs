@@ -231,6 +231,12 @@ looking at it; the two daily crons are only a floor, so the data is still
 current if nobody visits all day. (On a Pro plan this would collapse to one
 every-15-minutes cron and `syncIfStale()` could go.)
 
+Once the World Series has a winner, the crons and page loads stop syncing on
+their own: there's nothing left to fetch. The **Sync scores now** button on
+`/admin` still runs one, for picking up a score ESPN corrects afterwards. Next
+season's bracket starts without a World Series winner, so syncing resumes by
+itself.
+
 Each run:
 
 1. Fetches ESPN's MLB scoreboard one Eastern day at a time (`20260929`), from
