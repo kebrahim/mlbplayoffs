@@ -389,6 +389,18 @@ Everything but the deploy is built. The two crons run at 2am and 9am Eastern —
 after the last game of a night and before anyone looks in the morning — and the
 stale-read sync covers everything in between.
 
+**The crons were removed from `vercel.json` after the 2026 World Series.** Put
+them back before next season's postseason:
+
+```json
+{
+  "crons": [
+    { "path": "/api/sync/games", "schedule": "0 6 * * *" },
+    { "path": "/api/sync/games", "schedule": "0 13 * * *" }
+  ]
+}
+```
+
 ## Running the schema tests
 
 The scoring rules and the pre-lock privacy rules live in SQL — views and RLS
